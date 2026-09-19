@@ -3,7 +3,7 @@
 # sizhou.ai 终端简历 —— 一键下载并启动（不安装）
 #
 # 用法:
-#   curl -fsSL https://raw.githubusercontent.com/zimaStrawer/terminal-resume/main/run.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/zimaStrawer/terminal-resume/main/ai.sh | bash
 #
 # 域名 sizhou.ai 就绪后可缩短为:
 #   curl -fsSL sizhou.ai | bash

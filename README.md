@@ -7,7 +7,7 @@
 无需 npm / node / go，任何有 `curl` 和 `bash` 的环境都能跑：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/zimaStrawer/terminal-resume/main/run.sh | bash
+curl -fsSL https://raw.githubusercontent.com/zimaStrawer/terminal-resume/main/ai.sh | bash
 ```
 
 这一句会自动下载对应平台的程序并**直接启动**，退出后不留任何痕迹。支持 macOS / Linux 的 amd64 与 arm64。
