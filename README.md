@@ -2,25 +2,27 @@
 
 一份在访客电脑的终端中运行的中文交互式简历。视觉语言参考现代 AI TUI：内容居中、轻量状态栏、底部命令输入、斜杠命令和完整键盘操作。
 
-## 一行命令安装
+## 一句话启动（推荐）
 
-无需 npm / node / go，任何有 `curl` 和 `bash` 的环境都能装：
+无需 npm / node / go，任何有 `curl` 和 `bash` 的环境都能跑：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zimaStrawer/terminal-resume/main/run.sh | bash
+```
+
+这一句会自动下载对应平台的程序并**直接启动**，退出后不留任何痕迹。支持 macOS / Linux 的 amd64 与 arm64。
+
+> 域名 `sizhou.ai` 就绪后，命令会缩短为 `curl -fsSL sizhou.ai | bash`。Windows 用户请到 [Releases](https://github.com/zimaStrawer/terminal-resume/releases) 下载 `.exe`。
+
+## 安装成常驻命令（可选）
+
+想装成一个随时可敲的命令（不用每次下载）：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/zimaStrawer/terminal-resume/main/install.sh | bash
 ```
 
-装完后启动：
-
-```bash
-sizhou-resume
-```
-
-支持 macOS / Linux 的 amd64 与 arm64。Windows 用户请到 [Releases](https://github.com/zimaStrawer/terminal-resume/releases) 下载 `.exe`。
-
-> 安装脚本会从 GitHub Releases 下载对应平台的预编译二进制，装到 `~/.local/bin`（无需 sudo）。域名 `sizhou.ai` 就绪后，命令会切换为 `curl -fsSL https://sizhou.ai/install.sh | bash`。
-
-（另一种可选分发方式：`npx -y zhang-terminal-resume`，见下文「将它变成可分享的一行命令」。）
+装完直接敲 `sizhou-resume`。
 
 ## 已实现
 
