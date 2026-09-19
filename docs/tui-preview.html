@@ -1,0 +1,644 @@
+<!doctype html>
+<meta charset='utf-8'>
+<title>ZHANG Terminal Resume · 预览</title>
+<style>
+ body {
+   margin: 0; padding: 40px 32px 64px;
+   background: #0A0A0A; color: #F8FAFC;
+   font-family: -apple-system, 'PingFang SC', sans-serif;
+ }
+ h1 { font-size: 15px; font-weight: 600; margin: 0 0 16px; color: #16B8F3; }
+ h2 { font-size: 13px; font-weight: 500; margin: 0 0 8px; color: #94A3B8; }
+ .group { margin-bottom: 44px; }
+ .card {
+   background: #161616; border: 1px solid #262626; border-radius: 12px;
+   padding: 18px 20px; margin-bottom: 18px; overflow-x: auto;
+ }
+ pre {
+   margin: 0; font-family: 'SF Mono', Menlo, Consolas, monospace;
+   font-size: 13px; line-height: 1.45; white-space: pre; tab-size: 4;
+   background: #0A0A0A;
+ }
+ .intro {
+   max-width: 760px; margin: 0 0 44px; padding: 22px 24px;
+   border: 1px solid #262626; border-radius: 12px; background: #161616;
+ }
+ .intro-title { font-size: 20px; font-weight: 600; margin: 0 0 6px; color: #F8FAFC; }
+ .intro-sub { margin: 0 0 16px; font-size: 13px; color: #94A3B8; }
+ .spec { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.85; color: #CBD5E1; }
+ .spec b { color: #F8FAFC; font-weight: 600; }
+ .spec code {
+   font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 12px;
+   color: #16B8F3; background: rgba(22,184,243,.10);
+   padding: 1px 5px; border-radius: 4px;
+ }
+</style>
+<header class='intro'>
+  <h1 class='intro-title'>ZHANG Terminal Resume · 界面预览</h1>
+  <p class='intro-sub'>由真实运行的二进制 + pty 原始字节流还原（xterm.js），不是手绘稿。</p>
+  <ul class='spec'>
+    <li><b>终端底色</b> <code>#0A0A0A</code> —— 通过 OSC 11 写入终端，整块画布都吃这个颜色。</li>
+    <li><b>输入框</b> <code>#1E1E1E</code> 实心底，<b>左右各一条主题色竖线</b> <code>#16B8F3</code>，始终钉在屏幕底部。这条线是<b>用单元格背景色画的</b>（那一格的内容是空格），不是用方块字符描出来的：<code>▏</code>/<code>▕</code> 这类字形的墨迹高度<b>由字体决定、填不满终端的一格</b>（实测格子 28px，而 <code>▏</code> 的墨迹只有 23.5px），于是每行之间漏一道缝 —— 三行输入框的竖线被切成<b>三截</b>，整条线还比面板上下各短一截。背景色永远精确填满单元格，所以线必然<b>连续、且与输入框同高</b>；代价是线宽 = 1 个字符宽（终端里能画出来的最细实心线就是 1 格）。<code>│</code> 的墨迹够高能连上，但它在格子里<b>水平居中</b>，会浮在面板内侧半格。框内<b>只有一行输入区</b>，上下各一行内边距让它垂直居中；空态显示占位文案 <code>Ask me anything, or press / for shortcuts.</code>（窄于 62 列时换成短句 <code>Ask me anything, or press /</code>）。</li>
+    <li><b>提示字符是动画的</b> 输入框里那个字符照搬网站模块标题的光标（<code>AsciiTitle.astro</code>）：闪烁 10 步 ×300ms → 停 560ms → 乱序 16 帧 ×64ms（字符集 <code>x &gt; / &amp; - ~ ^ =</code>）→ 停 720ms 循环，基字符是 <code>›</code>。每一帧都只占 1 列，且暗态用空格填充，所以输入框整行宽度恒定、字位置不抖。快照只抓到循环中的某一帧，故各卡片里这个字符会不一样。</li>
+    <li><b>框内不再重复快捷键提示</b> 旧版那行 <code>/ shortcuts  ctrl+p commands  ctrl+c exit</code> 已删除，提示统一由占位文案承担；输入框下方那一行也只在有通知（notices）时才出字。</li>
+    <li><b>下拉框</b> 不设背景色（直接落在终端底色上），未选中项灰色 <code>#94A3B8</code>，选中项主题色 <code>#16B8F3</code>。</li>
+    <li><b>快捷菜单</b> <code>/</code> 唤出，四条固定文案（skills / resume / log / personal），永远落在输入框正上方，不遮 logo。</li>
+    <li><b>收尾文案</b> 跟在 logo 下方：一句致谢 + 一句邀请 + 一行主题色标语 <code>Design Without Boundaries</code>。空首页时它在 logo 与输入框之间，有了回答就和 logo 一起被顶上去、最终离屏。行尾下划线是静态光标（不闪烁）。</li>
+    <li><b>自由问答是真实 AI</b> 输入不以 <code>/</code> 开头的文本会打到作品集站的 <code>/api/chat</code>（Cloudflare Pages Function），回答按 SSE 逐片回来。<b>终端二进制里没有任何密钥</b>，它只负责转发；密钥留在站点侧的环境变量里。默认地址取简历里的 <code>profile.website</code>（AI 和简历同一个站点），<code>--api</code> 可覆盖、<code>--api off</code> 可关闭。上文「对话」那组就是这条链路——后端用 <code>scripts/chat-stub.py</code> 这个确定性桩，回答固定，所以预览可复现、不碰网络。</li>
+    <li><b>回答流式打印</b> 逐字显现，未打印到的位置留空，整页行结构不跳动。网络快慢与打字速度是解耦的：网络只负责把整段变长，打字机负责追上去，所以慢网络下也不会先卡住再一次蹦一大段。</li>
+    <li><b>长回答按内容宽度折行</b> 真实 AI 回答通常是一整条<b>不含任何换行</b>的长句，必须折行显示。旧版对助手回答只做单行截断，实测一条 168 字的回答只显示出前 54 字、后面整段被静默丢掉（斜杠命令的本地回答自带换行，所以这个 bug 一直没暴露）。</li>
+    <li><b>对话流</b> 旧回答按顺序累积在下方，越攒越多就把收尾文案和 logo 一路顶出屏幕；输入框始终钉在底部。Esc 可中断正在生成的回答，已收到的部分会保留。</li>
+    <li><b>简历未就绪时给进度占位</b> <code>/resume</code> 的 RESUME 一栏：<code>profile.resume_url</code> 为空时渲染「等待简历下载中」+ 一条 30 格进度条，而不是给一个打不开的链接（模板里原本是一条不存在的域名）。进度条只用 <code>█</code> 与空格，刻意避开 <code>░▒▓</code>、<code>▏▎▍</code> 这些 East Asian Width = Ambiguous 的字形——它们在偏好 CJK 字体的终端里会被排成两列，把整行挤歪。填上真实 PDF 地址后自动变回可点击的下载链接，不用改代码。</li>
+    <li><b>LOGO</b> <code>SI</code> 银灰 <code>#A6AEBB</code> + <code>ZHOU</code> 近白 <code>#FFFFFF</code>。</li>
+  </ul>
+</header>
+<section class='group'><h1>标准终端 100 × 30</h1><section class='card'><h2>启动首页</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'> </span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>按 / 打开下拉框 · 四条快捷命令落在输入框上方</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'>                </span><span style='color:#16b8f3'>&gt; /skills    explore my design &amp; technical toolkit</span><span style='color:#F8FAFC'>                                  </span>
+<span style='color:#F8FAFC'>                </span><span style='color:#94a3b8'>  /resume    download my latest resume</span><span style='color:#F8FAFC'>                                              </span>
+<span style='color:#F8FAFC'>                </span><span style='color:#94a3b8'>  /log       browse recent builds &amp; learning notes</span><span style='color:#F8FAFC'>                                  </span>
+<span style='color:#F8FAFC'>                </span><span style='color:#94a3b8'>  /personal  discover the person behind the work</span><span style='color:#F8FAFC'>                                    </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#94a3b8'>^</span><span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>/</span><span style='color:#F8FAFC'>                                                                   </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>执行 /skills · 收尾文案随 logo 一起被顶到回答上方</h2><pre><span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'> › /skills                                                                                          </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>SKILLS</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>能力图谱</span><span style='color:#F8FAFC'>                                                                                  </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>DESIGN</span><span style='color:#F8FAFC'>                                                                                             </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>用户研究  /  信息架构  /  交互设计  /  高保真原型  /  可用性测试</span><span style='color:#F8FAFC'>                                   </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>ENGINEERING</span><span style='color:#F8FAFC'>                                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>HTML / CSS  /  JavaScript / TypeScript  /  React  /  Go / TUI  /  Design Systems</span><span style='color:#F8FAFC'>                   </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>AI WORKFLOW</span><span style='color:#F8FAFC'>                                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>AI 原型开发  /  Prompt 设计  /  Agent 工作流  /  CLI 工具  /  设计评估自动化</span><span style='color:#F8FAFC'>                       </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>能力不是工具清单：项目详情中展示了它们如何共同解决问题。</span><span style='color:#F8FAFC'>                                           </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>执行 /personal · 收尾文案与 logo 一起被顶出屏幕</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>用户研究  /  信息架构  /  交互设计  /  高保真原型  /  可用性测试</span><span style='color:#F8FAFC'>                                   </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>ENGINEERING</span><span style='color:#F8FAFC'>                                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>HTML / CSS  /  JavaScript / TypeScript  /  React  /  Go / TUI  /  Design Systems</span><span style='color:#F8FAFC'>                   </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>AI WORKFLOW</span><span style='color:#F8FAFC'>                                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>AI 原型开发  /  Prompt 设计  /  Agent 工作流  /  CLI 工具  /  设计评估自动化</span><span style='color:#F8FAFC'>                       </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>能力不是工具清单：项目详情中展示了它们如何共同解决问题。</span><span style='color:#F8FAFC'>                                           </span>
+ 
+<span style='color:#F8FAFC'> › /personal                                                                                        </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>ABOUT</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>关于我</span><span style='color:#F8FAFC'>                                                                                     </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc;font-weight:600'>张思洲  /  设计工程师 · UX 设计师</span><span style='color:#F8FAFC'>                                                                  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>中国 · 杭州  ·  正在寻找设计工程师与 UX 设计机会</span><span style='color:#F8FAFC'>                                                   </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>我喜欢把模糊的问题变成清晰的体验，也喜欢亲手把体验做成可以运行、可以验证的产品。我的工作横跨用户研</span><span style='color:#F8FAFC'> </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>究、信息架构、交互设计、原型和前端实现。</span><span style='color:#F8FAFC'>                                                           </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>WORKING PRINCIPLES / 工作方式</span><span style='color:#F8FAFC'>                                                                      </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>+ </span><span style='color:#f8fafc'>先理解用户为什么卡住，再决定界面应该长什么样。</span><span style='color:#F8FAFC'>                                                   </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>+ </span><span style='color:#f8fafc'>用可运行原型缩短设计、产品与工程之间的讨论距离。</span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>+ </span><span style='color:#f8fafc'>让 AI 的能力可见、可控、可理解，而不是只增加一个输入框。</span><span style='color:#F8FAFC'>                                         </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#94a3b8'>~</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>执行 /help · 回答正在流式打印（约三分之一）</h2><pre> 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>HELP</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>命令与快捷键</span><span style='color:#F8FAFC'>                                                                                </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/about /personal   </span><span style='color:#f8fafc'>关于我</span><span style='color:#F8FAFC'>                                                                          </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/experience        </span><span style='color:#f8fafc'>工作经历</span><span style='color:#F8FAFC'>                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/projects          </span><span style='color:#f8fafc'>项目列表</span><span style='color:#F8FAFC'>                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/project 01        </span><span style='color:#f8fafc'>打开项目详情</span><span style='color:#F8FAFC'>                                                                    </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/skills            </span><span style='color:#f8fafc'>能力与工具</span><span style='color:#F8FAFC'>                                                                      </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/status            </span><span style='color:#f8fafc'>当前状态与求职方向</span><span style='color:#F8FAFC'>                                                              </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/log               </span><span style='color:#f8fafc'>学习与构建记录</span><span style='color:#F8FAFC'>                                                                  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/random            </span><span style='color:#f8fafc'>别处没有的东西</span><span style='color:#F8FAFC'>                                                                  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/conta</span><span style='color:#F8FAFC'>                                                                                             </span>
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>/help 回答完成</h2><pre> 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>HELP</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>命令与快捷键</span><span style='color:#F8FAFC'>                                                                                </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/about /personal   </span><span style='color:#f8fafc'>关于我</span><span style='color:#F8FAFC'>                                                                          </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/experience        </span><span style='color:#f8fafc'>工作经历</span><span style='color:#F8FAFC'>                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/projects          </span><span style='color:#f8fafc'>项目列表</span><span style='color:#F8FAFC'>                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/project 01        </span><span style='color:#f8fafc'>打开项目详情</span><span style='color:#F8FAFC'>                                                                    </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/skills            </span><span style='color:#f8fafc'>能力与工具</span><span style='color:#F8FAFC'>                                                                      </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/status            </span><span style='color:#f8fafc'>当前状态与求职方向</span><span style='color:#F8FAFC'>                                                              </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/log               </span><span style='color:#f8fafc'>学习与构建记录</span><span style='color:#F8FAFC'>                                                                  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/random            </span><span style='color:#f8fafc'>别处没有的东西</span><span style='color:#F8FAFC'>                                                                  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/contact           </span><span style='color:#f8fafc'>联系方式</span><span style='color:#F8FAFC'>                                                                        </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/resume            </span><span style='color:#f8fafc'>PDF 简历地址</span><span style='color:#F8FAFC'>                                                                    </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/theme cyan|mono   </span><span style='color:#f8fafc'>彩色 / 黑白主题</span><span style='color:#F8FAFC'>                                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/home /clear       </span><span style='color:#f8fafc'>返回或重置首页</span><span style='color:#F8FAFC'>                                                                  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>/exit              </span><span style='color:#f8fafc'>退出程序</span><span style='color:#F8FAFC'>                                                                        </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>KEYBOARD / 键盘</span><span style='color:#F8FAFC'>                                                                                    </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>/               打开快捷命令菜单</span><span style='color:#F8FAFC'>                                                                   </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Tab             接受自动补全建议</span><span style='color:#F8FAFC'>                                                                   </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Ctrl+P          打开命令列表</span><span style='color:#F8FAFC'>                                                                       </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>↑ / ↓           选择项目或查看命令历史</span><span style='color:#F8FAFC'>                                                             </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>PgUp / PgDn     滚动长内容</span><span style='color:#F8FAFC'>                                                                         </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Esc             返回上一级</span><span style='color:#F8FAFC'>                                                                         </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Ctrl+C          随时退出</span><span style='color:#F8FAFC'>                                                                           </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>执行 /resume</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>PgUp / PgDn     滚动长内容</span><span style='color:#F8FAFC'>                                                                         </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Esc             返回上一级</span><span style='color:#F8FAFC'>                                                                         </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Ctrl+C          随时退出</span><span style='color:#F8FAFC'>                                                                           </span>
+ 
+<span style='color:#F8FAFC'> › /resume                                                                                          </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>CONTACT</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>联系方式</span><span style='color:#F8FAFC'>                                                                                 </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc;font-weight:600'>正在寻找设计工程师与 UX 设计机会</span><span style='color:#F8FAFC'>                                                                   </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>EMAIL</span><span style='color:#F8FAFC'>                                                                                              </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>hello@zhang.design</span><span style='color:#F8FAFC'>                                                                                 </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>WEBSITE</span><span style='color:#F8FAFC'>                                                                                            </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>https://zhangsizhou.pages.dev</span><span style='color:#F8FAFC'>                                                                      </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>GITHUB</span><span style='color:#F8FAFC'>                                                                                             </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>https://github.com/zhangsizhou</span><span style='color:#F8FAFC'>                                                                     </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>RESUME</span><span style='color:#F8FAFC'>                                                                                             </span>
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>简历 PDF 正在收尾，准备好后会挂在这里。</span><span style='color:#F8FAFC'>                                                            </span>
+<span style='color:#F8FAFC'> [</span><span style='color:#22d3ee'>██████████████████</span><span style='color:#F8FAFC'>            ] </span><span style='color:#94a3b8'>等待简历下载中</span><span style='color:#F8FAFC'>                                                    </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>感谢你花时间在终端中认识我。</span><span style='color:#F8FAFC'>                                                                       </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>执行 /log</h2><pre> 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>WEBSITE</span><span style='color:#F8FAFC'>                                                                                            </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>https://zhangsizhou.pages.dev</span><span style='color:#F8FAFC'>                                                                      </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>GITHUB</span><span style='color:#F8FAFC'>                                                                                             </span>
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>https://github.com/zhangsizhou</span><span style='color:#F8FAFC'>                                                                     </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>RESUME</span><span style='color:#F8FAFC'>                                                                                             </span>
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>简历 PDF 正在收尾，准备好后会挂在这里。</span><span style='color:#F8FAFC'>                                                            </span>
+<span style='color:#F8FAFC'> [</span><span style='color:#22d3ee'>██████████████████</span><span style='color:#F8FAFC'>            ] </span><span style='color:#94a3b8'>等待简历下载中</span><span style='color:#F8FAFC'>                                                    </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>感谢你花时间在终端中认识我。</span><span style='color:#F8FAFC'>                                                                       </span>
+ 
+<span style='color:#F8FAFC'> › /log                                                                                             </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>LOG</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>学习与构建记录</span><span style='color:#F8FAFC'>                                                                               </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>09.18</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;background:#0f172a'> </span><span style='color:#cbd5e1;background:#0f172a'>build</span><span style='color:#F8FAFC;background:#0f172a'> </span><span style='color:#F8FAFC'>  </span><span style='color:#f8fafc'>Connected AI chat to terminal</span><span style='color:#F8FAFC'>                                                      </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>09.17</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;background:#0f172a'> </span><span style='color:#cbd5e1;background:#0f172a'>design</span><span style='color:#F8FAFC;background:#0f172a'> </span><span style='color:#F8FAFC'>  </span><span style='color:#f8fafc'>Refined portfolio viewport strategy</span><span style='color:#F8FAFC'>                                               </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>09.15</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;background:#0f172a'> </span><span style='color:#cbd5e1;background:#0f172a'>build</span><span style='color:#F8FAFC;background:#0f172a'> </span><span style='color:#F8FAFC'>  </span><span style='color:#f8fafc'>Built Design-to-Code workflow</span><span style='color:#F8FAFC'>                                                      </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>这里记录最近在学、在建、在试的东西。</span><span style='color:#F8FAFC'>                                                               </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'> </span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>通知 · 启动首页</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>通知 · 输入未知命令 /nope · 提示落在输入框下方，输入框位置不动</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+<span style='color:#F8FAFC'>                        </span><span style='color:#fb7185;font-weight:600'>[error] 没有找到命令 "/nope"。你是否想输入 "/home"？</span><span style='color:#F8FAFC'>                        </span></pre></section><section class='card'><h2>对话 · 启动首页</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>对话 · 输入一句自由提问</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'> </span><span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>他做过哪些项目？</span><span style='color:#F8FAFC'>                                                    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>对话 · 提交后 · 回答正在流式打印</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'> › 他做过哪些项目？                                                                                 </span>
+ 
+<span style='color:#F8FAFC'> 张思洲的精选项目包括：跑腿全链路优化、构序云体验适配、艺术画境产品设计以及 N                       </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section><section class='card'><h2>对话 · 回答打印完成 · 长句自动折行，一个字都没丢</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>                         </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>                          </span>
+ 
+<span style='color:#F8FAFC'>                                           </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                           </span>
+<span style='color:#F8FAFC'>                            </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
+ 
+<span style='color:#F8FAFC'> › 他做过哪些项目？                                                                                 </span>
+ 
+<span style='color:#F8FAFC'> 张思洲的精选项目包括：跑腿全链路优化、构序云体验适配、艺术画境产品设计以及 NeckDisco               </span>
+<span style='color:#F8FAFC'> 创新应用。这些案例涵盖从 C 端消费体验到 B 端企业级平台，再到 AI                                    </span>
+<span style='color:#F8FAFC'> 原生产品与空间音频交互的探索。每个项目都聚焦于解决复杂问题，通过设计策略与工程实现提升用户体验。如 </span>
+<span style='color:#F8FAFC'> 需了解具体细节，可以继续问我某个项目的取舍，或直接访问作品集的项目页面。                           </span>
+ 
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'> </span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>                          </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>             </span>
+ 
+ </pre></section></section>
+<section class='group'><h1>窄屏终端 64 × 22</h1><section class='card'><h2>窄屏 · 启动首页</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>        </span>
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>          </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>           </span>
+<span style='color:#F8FAFC'>                   </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                    </span>
+ 
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                      </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                      </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+ 
+ </pre></section><section class='card'><h2>窄屏 · 按 / 打开下拉框</h2><pre> 
+ 
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>╚════██║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╔══██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚██████╔╝</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>╚═╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══════╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>╚═════╝</span><span style='color:#F8FAFC'>        </span>
+ 
+<span style='color:#F8FAFC'>                         </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                         </span>
+<span style='color:#F8FAFC'>          </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>           </span>
+<span style='color:#F8FAFC'>                   </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                    </span>
+ 
+<span style='color:#F8FAFC'>       </span><span style='color:#16b8f3'>&gt; /skills    explore my design &amp; technical toolkit</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#94a3b8'>  /resume    download my latest resume</span><span style='color:#F8FAFC'>                   </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#94a3b8'>  /log       browse recent builds &amp; learning notes</span><span style='color:#F8FAFC'>       </span>
+<span style='color:#F8FAFC'>       </span><span style='color:#94a3b8'>  /personal  discover the person behind the work</span><span style='color:#F8FAFC'>         </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                      </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>/</span><span style='color:#F8FAFC'>                                                 </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                      </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+ 
+ </pre></section><section class='card'><h2>窄屏 · 执行 /skills · 长回答自动折行</h2><pre> 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee'>SKILLS</span><span style='color:#6b7a90'> / </span><span style='color:#f8fafc;font-weight:600'>能力图谱</span><span style='color:#F8FAFC'>                                              </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>DESIGN</span><span style='color:#F8FAFC'>                                                         </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>用户研究  /  信息架构  /  交互设计  /  高保真原型  /</span><span style='color:#F8FAFC'>           </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>可用性测试</span><span style='color:#F8FAFC'>                                                     </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>ENGINEERING</span><span style='color:#F8FAFC'>                                                    </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>HTML / CSS  /  JavaScript / TypeScript  /  React  /  Go / TUI</span><span style='color:#F8FAFC'>  </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>/  Design Systems</span><span style='color:#F8FAFC'>                                              </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#22d3ee;font-weight:600'>AI WORKFLOW</span><span style='color:#F8FAFC'>                                                    </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>AI 原型开发  /  Prompt 设计  /  Agent 工作流  /  CLI 工具  /</span><span style='color:#F8FAFC'>   </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>设计评估自动化</span><span style='color:#F8FAFC'>                                                 </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>能力不是工具清单：项目详情中展示了它们如何共同解决问题。</span><span style='color:#F8FAFC'>       </span>
+ 
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                      </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC'>        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                                      </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+ 
+ </pre></section></section>
+<section class='group'><h1>黑白模式（--mono） 90 × 26</h1><section class='card'><h2>黑白 · 启动首页</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                    ███████╗ ██╗ ███████╗ ██╗  ██╗  ██████╗  ██╗   ██╗                    </span>
+<span style='color:#F8FAFC'>                    ██╔════╝ ██║ ╚══███╔╝ ██║  ██║ ██╔═══██╗ ██║   ██║                    </span>
+<span style='color:#F8FAFC'>                    ███████╗ ██║   ███╔╝  ███████║ ██║   ██║ ██║   ██║                    </span>
+<span style='color:#F8FAFC'>                    ╚════██║ ██║  ███╔╝   ██╔══██║ ██║   ██║ ██║   ██║                    </span>
+<span style='color:#F8FAFC'>                    ███████║ ██║ ███████╗ ██║  ██║ ╚██████╔╝ ╚██████╔╝                    </span>
+<span style='color:#F8FAFC'>                    ╚══════╝ ╚═╝ ╚══════╝ ╚═╝  ╚═╝  ╚═════╝   ╚═════╝                     </span>
+ 
+<span style='color:#F8FAFC'>                                      </span><span style='color:#F8FAFC;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                      </span>
+<span style='color:#F8FAFC'>                       随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#F8FAFC;font-weight:600'>_</span><span style='color:#F8FAFC'>                        </span>
+<span style='color:#F8FAFC'>                                </span><span style='color:#F8FAFC;font-weight:600'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                 </span>
+ 
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> Ask me anything, or press / for shortcuts.                          </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+ 
+ </pre></section><section class='card'><h2>黑白 · 按 / 打开下拉框</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                    ███████╗ ██╗ ███████╗ ██╗  ██╗  ██████╗  ██╗   ██╗                    </span>
+<span style='color:#F8FAFC'>                    ██╔════╝ ██║ ╚══███╔╝ ██║  ██║ ██╔═══██╗ ██║   ██║                    </span>
+<span style='color:#F8FAFC'>                    ███████╗ ██║   ███╔╝  ███████║ ██║   ██║ ██║   ██║                    </span>
+<span style='color:#F8FAFC'>                    ╚════██║ ██║  ███╔╝   ██╔══██║ ██║   ██║ ██║   ██║                    </span>
+<span style='color:#F8FAFC'>                    ███████║ ██║ ███████╗ ██║  ██║ ╚██████╔╝ ╚██████╔╝                    </span>
+<span style='color:#F8FAFC'>                    ╚══════╝ ╚═╝ ╚══════╝ ╚═╝  ╚═╝  ╚═════╝   ╚═════╝                     </span>
+ 
+<span style='color:#F8FAFC'>                                      </span><span style='color:#F8FAFC;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                      </span>
+<span style='color:#F8FAFC'>                       随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#F8FAFC;font-weight:600'>_</span><span style='color:#F8FAFC'>                        </span>
+<span style='color:#F8FAFC'>                                </span><span style='color:#F8FAFC;font-weight:600'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                 </span>
+ 
+<span style='color:#F8FAFC'>           </span><span style='color:#F8FAFC;font-weight:600'>&gt; /skills    explore my design &amp; technical toolkit</span><span style='color:#F8FAFC'>                             </span>
+<span style='color:#F8FAFC'>             /resume    download my latest resume                                         </span>
+<span style='color:#F8FAFC'>             /log       browse recent builds &amp; learning notes                             </span>
+<span style='color:#F8FAFC'>             /personal  discover the person behind the work                               </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#F8FAFC;font-weight:600'>/</span><span style='color:#F8FAFC'>                                                                   </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+ 
+ </pre></section><section class='card'><h2>黑白 · 执行 /skills</h2><pre><span style='color:#F8FAFC'>                    ╚══════╝ ╚═╝ ╚══════╝ ╚═╝  ╚═╝  ╚═════╝   ╚═════╝                     </span>
+ 
+<span style='color:#F8FAFC'>                                      </span><span style='color:#F8FAFC;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                                      </span>
+<span style='color:#F8FAFC'>                       随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#F8FAFC;font-weight:600'>_</span><span style='color:#F8FAFC'>                        </span>
+<span style='color:#F8FAFC'>                                </span><span style='color:#F8FAFC;font-weight:600'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                 </span>
+ 
+<span style='color:#F8FAFC'> › /skills                                                                                </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#F8FAFC;font-weight:600'>SKILLS</span><span style='color:#F8FAFC'> / </span><span style='color:#F8FAFC;font-weight:600'>能力图谱</span><span style='color:#F8FAFC'>                                                                        </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#F8FAFC;font-weight:600'>DESIGN</span><span style='color:#F8FAFC'>                                                                                   </span>
+<span style='color:#F8FAFC'> 用户研究  /  信息架构  /  交互设计  /  高保真原型  /  可用性测试                         </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#F8FAFC;font-weight:600'>ENGINEERING</span><span style='color:#F8FAFC'>                                                                              </span>
+<span style='color:#F8FAFC'> HTML / CSS  /  JavaScript / TypeScript  /  React  /  Go / TUI  /  Design Systems         </span>
+ 
+<span style='color:#F8FAFC'> </span><span style='color:#F8FAFC;font-weight:600'>AI WORKFLOW</span><span style='color:#F8FAFC'>                                                                              </span>
+<span style='color:#F8FAFC'> AI 原型开发  /  Prompt 设计  /  Agent 工作流  /  CLI 工具  /  设计评估自动化             </span>
+ 
+<span style='color:#F8FAFC'> 能力不是工具清单：项目详情中展示了它们如何共同解决问题。                                 </span>
+ 
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> Ask me anything, or press / for shortcuts.                          </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>│</span><span style='color:#F8FAFC'>        </span>
+ 
+ </pre></section></section>
+<section class='group'><h1>终端 50 × 22</h1><section class='card'><h2>窄屏短句 · 启动首页</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                      </span><span style='color:#f8fafc;font-weight:600'>SIZHOU</span><span style='color:#F8FAFC'>                      </span>
+ 
+<span style='color:#F8FAFC'>                  </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                  </span>
+<span style='color:#F8FAFC'>   </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>            </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>             </span>
+ 
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#22d3ee;font-weight:600'>›</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press /</span><span style='color:#F8FAFC'>         </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+ 
+ </pre></section><section class='card'><h2>窄屏短句 · 启动首页 · 占位文案换成 Ask me anything, or press /</h2><pre> 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+<span style='color:#F8FAFC'>                      </span><span style='color:#f8fafc;font-weight:600'>SIZHOU</span><span style='color:#F8FAFC'>                      </span>
+ 
+<span style='color:#F8FAFC'>                  </span><span style='color:#f8fafc;font-weight:600'>感谢看到最后！</span><span style='color:#F8FAFC'>                  </span>
+<span style='color:#F8FAFC'>   </span><span style='color:#94a3b8'>随便问问、随便逛逛，也期待有机会进一步交流</span><span style='color:#16b8f3'>_</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>            </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>             </span>
+ 
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>  </span><span style='color:#94a3b8'>x</span><span style='color:#F8FAFC'> </span><span style='color:#6b7a90'>Ask me anything, or press /</span><span style='color:#F8FAFC'>         </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>                                        </span><span style='color:#16b8f3'>│</span><span style='color:#F8FAFC'>    </span>
+ 
+ </pre></section></section>

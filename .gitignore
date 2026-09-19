@@ -1,0 +1,9 @@
+.data/
+terminal-resume
+coverage.out
+.DS_Store
+npm/bin/native/
+npm/*.tgz
+
+# 工作记忆（非项目代码）
+.workbuddy/

@@ -1,0 +1,149 @@
+profile:
+  name: ZHANG
+  chinese_name: 张思洲
+  roles:
+    - 设计工程师
+    - UX 设计师
+  tagline: 我在设计逻辑与可运行产品之间工作，从用户问题、交互原型，到前端实现与 AI 工具。
+  location: 中国 · 杭州
+  email: hello@zhang.design
+  # ⚠️ website 同时是自由问答的后端地址（AI 挂在它的 /api/chat 上），
+  # 必须填真实已部署的域名；填错的话访客一提问只会看到一行连接错误。
+  # 本地联调可用 `--api http://127.0.0.1:8788` 覆盖，`--api off` 关闭。
+  website: https://zhangsizhou.pages.dev
+  github: https://github.com/zhangsizhou
+  # resume_url 留空 = 简历 PDF 还没准备好：/resume 会显示「等待简历下载中」的进度占位。
+  # 真实 PDF 上线后把完整地址填在这里，那一行会自动变回可点击的下载链接。
+  resume_url: ""
+
+about:
+  summary: 我喜欢把模糊的问题变成清晰的体验，也喜欢亲手把体验做成可以运行、可以验证的产品。我的工作横跨用户研究、信息架构、交互设计、原型和前端实现。
+  principles:
+    - 先理解用户为什么卡住，再决定界面应该长什么样。
+    - 用可运行原型缩短设计、产品与工程之间的讨论距离。
+    - 让 AI 的能力可见、可控、可理解，而不是只增加一个输入框。
+
+status:
+  headline: 正在寻找设计工程师与 UX 设计机会
+  roles:
+    - 设计工程师
+    - UX 设计师
+    - AI 产品设计师
+  focus:
+    - AI 原生产品交互
+    - 设计到代码的自动化工作流
+    - 终端与命令行产品体验
+
+log:
+  - date: "09.18"
+    kind: build
+    text: Connected AI chat to terminal
+  - date: "09.17"
+    kind: design
+    text: Refined portfolio viewport strategy
+  - date: "09.15"
+    kind: build
+    text: Built Design-to-Code workflow
+
+random:
+  - label: 为什么有这个终端
+    text: 网站是给所有人看的，这个终端是给愿意多敲一行命令的人准备的。这里放的东西，网站上都有意没放。
+  - label: 最近在折腾
+    text: 把一个 AI 接进这个终端，让它能被问问题，而不是只会输出预设内容。
+  - label: 一个偏好
+    text: 喜欢能被键盘完整操作的产品。能用 Tab 补全、Esc 返回的界面，通常都不会太差。
+
+experience:
+  - period: 2025 — 至今
+    company: Independent Lab
+    role: 设计工程师
+    description: 探索 AI 原生交互、终端产品和设计到代码的协作方式。
+    highlights:
+      - 完成多套从概念、原型到前端实现的端到端实验。
+      - 将设计规范转化为可复用组件与自动化工作流。
+  - period: 2023 — 2025
+    company: Product Studio
+    role: UX 设计师
+    description: 负责复杂服务流程、信息架构与跨端体验设计。
+    highlights:
+      - 通过渐进披露降低长流程中的理解与填写成本。
+      - 与产品和工程团队共同完成可用性测试及迭代验证。
+
+skills:
+  - name: DESIGN
+    items:
+      - 用户研究
+      - 信息架构
+      - 交互设计
+      - 高保真原型
+      - 可用性测试
+  - name: ENGINEERING
+    items:
+      - HTML / CSS
+      - JavaScript / TypeScript
+      - React
+      - Go / TUI
+      - Design Systems
+  - name: AI WORKFLOW
+    items:
+      - AI 原型开发
+      - Prompt 设计
+      - Agent 工作流
+      - CLI 工具
+      - 设计评估自动化
+
+projects:
+  - id: "01"
+    title: AI 任务助手
+    subtitle: 重新设计复杂 AI 任务的创建、执行与反馈体验
+    year: "2026"
+    role: UX 策略、交互设计、前端原型
+    tags:
+      - AI UX
+      - Prototype
+      - Front-end
+    problem: 复杂任务通常需要较长处理时间，但用户看不到 AI 正在做什么，也不知道何时应该介入，容易误以为系统已经卡住。
+    decision: 将不可见的处理过程拆成目标理解、计划生成、执行和结果验证四个阶段，并为每个阶段提供明确的状态、证据和人工控制点。
+    deliverables:
+      - 用户流程与异常状态
+      - 高保真交互原型
+      - React 可运行验证版本
+      - 5 人可用性测试
+    result: 演示测试中，任务中断率下降 23%，用户对当前进度的理解度明显提升。
+    link: https://example.com/ai-task-assistant
+  - id: "02"
+    title: 城市跑腿服务重设计
+    subtitle: 降低多步骤下单流程中的理解和填写成本
+    year: "2025"
+    role: 用户研究、服务设计、交互设计
+    tags:
+      - UX Strategy
+      - Research
+      - Interaction
+    problem: 用户需要把一句简单的现实需求翻译成长表单，平台的运营复杂度被直接暴露给了用户。
+    decision: 围绕用户意图重新组织流程，先确认任务与地址，再按需要逐步补充物品和配送约束。
+    deliverables:
+      - 访谈与问题归因
+      - 端到端用户旅程
+      - 下单与物流跟踪原型
+      - 内容与状态规范
+    result: 核心路径由 14 个决策点减少到 8 个，概念测试中的任务完成时间缩短 31%。
+    link: https://example.com/errand-redesign
+  - id: "03"
+    title: 设计系统自动化工具
+    subtitle: 连接设计变量、组件文档与前端代码
+    year: "2026"
+    role: 产品设计、系统设计、工程实现
+    tags:
+      - Design System
+      - TypeScript
+      - AI Workflow
+    problem: 设计变量、组件规范和前端 Token 分散在不同工具中，更新依赖人工同步，错误很难及时发现。
+    decision: 建立单一数据源，并让设计与代码的差异检查成为持续工作流的一部分，而不是发布前的人工清单。
+    deliverables:
+      - Token 数据模型
+      - 命令行同步工具
+      - 差异报告界面
+      - 团队使用文档
+    result: 演示流程将一次完整同步从约 40 分钟缩短到 4 分钟，并保留可追溯的变更记录。
+    link: https://example.com/design-system-cli

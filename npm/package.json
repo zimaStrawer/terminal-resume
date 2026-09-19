@@ -1,0 +1,29 @@
+{
+  "name": "zhang-terminal-resume",
+  "version": "0.1.0",
+  "description": "在终端中浏览 ZHANG 的交互式中文简历",
+  "license": "UNLICENSED",
+  "type": "module",
+  "bin": {
+    "zhang-terminal-resume": "./bin/cli.mjs"
+  },
+  "files": [
+    "bin/cli.mjs",
+    "bin/native/terminal-resume-darwin-arm64",
+    "bin/native/terminal-resume-darwin-amd64",
+    "bin/native/terminal-resume-linux-arm64",
+    "bin/native/terminal-resume-linux-amd64",
+    "bin/native/terminal-resume-win32-arm64.exe",
+    "bin/native/terminal-resume-win32-amd64.exe"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build:native": "node ./scripts/build-native.mjs",
+    "prepack": "npm run build:native"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
