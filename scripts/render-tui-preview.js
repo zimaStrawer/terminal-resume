@@ -20,7 +20,7 @@ const OUT = process.argv[3] || path.join(ROOT, 'docs', 'tui-preview.html');
 
 const FRAMES = JSON.parse(fs.readFileSync(FRAMES_PATH, 'utf8'));
 
-const PAGE_BG = '#0A0A0A';
+const PAGE_BG = '#0D0D0D';
 const SURFACE = '#161616';
 
 /* ---------- 调色板（256 色，供 0x01/0x02 模式用） ---------- */
@@ -171,8 +171,8 @@ function sizeTitle(group) {
   <h1 class='intro-title'>ZHANG Terminal Resume · 界面预览</h1>
   <p class='intro-sub'>由真实运行的二进制 + pty 原始字节流还原（xterm.js），不是手绘稿。</p>
   <ul class='spec'>
-    <li><b>终端底色</b> <code>#0A0A0A</code> —— 通过 OSC 11 写入终端，整块画布都吃这个颜色。</li>
-    <li><b>输入框</b> <code>#1E1E1E</code> 实心底，<b>左右各一条主题色竖线</b> <code>#16B8F3</code>，始终钉在屏幕底部。这条线是<b>用单元格背景色画的</b>（那一格的内容是空格），不是用方块字符描出来的：<code>▏</code>/<code>▕</code> 这类字形的墨迹高度<b>由字体决定、填不满终端的一格</b>（实测格子 28px，而 <code>▏</code> 的墨迹只有 23.5px），于是每行之间漏一道缝 —— 三行输入框的竖线被切成<b>三截</b>，整条线还比面板上下各短一截。背景色永远精确填满单元格，所以线必然<b>连续、且与输入框同高</b>；代价是线宽 = 1 个字符宽（终端里能画出来的最细实心线就是 1 格）。<code>│</code> 的墨迹够高能连上，但它在格子里<b>水平居中</b>，会浮在面板内侧半格。框内<b>只有一行输入区</b>，上下各一行内边距让它垂直居中；空态显示占位文案 <code>Ask me anything, or press / for shortcuts.</code>（窄于 62 列时换成短句 <code>Ask me anything, or press /</code>）。</li>
+    <li><b>终端底色</b> <code>#0D0D0D</code> —— 通过 OSC 11 写入终端，整块画布都吃这个颜色。</li>
+    <li><b>输入框</b> <code>#201E1E</code> 实心底，<b>左右各一条主题色实心竖条</b> <code>#16B8F3</code>，始终钉在屏幕底部。竖条由<b>格子背景色整格铺满</b>画成，所以必然贴边、等高、连续无缝。靠字形墨迹画不出这个效果：方块字符 <code>▏</code>/<code>▕</code> 的墨迹高度由字体决定、会被切成几截；box-drawing 的 <code>│</code>（U+2502）为了让相邻行的线衔接，墨迹比格还高，会从框底漏出一截、在页面底色上显形。格内另留一个不可见的占位字形 <code>ǀ</code>（U+01C0，前景色 = 背景色）供光标定位与测试探针认框行。框内<b>只有一行输入区</b>，上下各一行内边距让它垂直居中；空态显示占位文案 <code>Ask me anything, or press / for shortcuts.</code>（窄于 62 列时换成短句 <code>Ask me anything, or press /</code>）。</li>
     <li><b>提示字符是动画的</b> 输入框里那个字符照搬网站模块标题的光标（<code>AsciiTitle.astro</code>）：闪烁 10 步 ×300ms → 停 560ms → 乱序 16 帧 ×64ms（字符集 <code>x &gt; / &amp; - ~ ^ =</code>）→ 停 720ms 循环，基字符是 <code>›</code>。每一帧都只占 1 列，且暗态用空格填充，所以输入框整行宽度恒定、字位置不抖。快照只抓到循环中的某一帧，故各卡片里这个字符会不一样。</li>
     <li><b>框内不再重复快捷键提示</b> 旧版那行 <code>/ shortcuts  ctrl+p commands  ctrl+c exit</code> 已删除，提示统一由占位文案承担；输入框下方那一行也只在有通知（notices）时才出字。</li>
     <li><b>下拉框</b> 不设背景色（直接落在终端底色上），未选中项灰色 <code>#94A3B8</code>，选中项主题色 <code>#16B8F3</code>。</li>

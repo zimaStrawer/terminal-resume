@@ -1,12 +1,15 @@
 package app
 
 import (
+	"context"
 	"slices"
 	"strings"
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/zhangsizhou/terminal-resume/internal/ai"
 	"github.com/zhangsizhou/terminal-resume/profile"
 )
 
@@ -72,18 +75,19 @@ func boxRows(lines []string) []int {
 	return rows
 }
 
-// isBoxRow 判断一行是不是输入框的一行：框区自 2026-09-19 起**不再铺底色**
-// （macOS 输入法擦除显形问题，见 box.go renderDialog），框行只能靠左右两条 │ 竖线辨认，
-// 而全帧渲染里只有输入框会画这个字形（用户对话文本里打出的 │ 在框上方，不在框行）。
+// isBoxRow 判断一行是不是输入框的一行：框行靠左右两个竖条格辨认
+// （2026-09-20 起框内铺 colorInputSurface 底色，但底色不是可靠标识——
+// 对话流里别的组件也可能带背景色，而全帧渲染里只有输入框会写 dialogEdgeLeft 字形）。
 //
-// ⚠️ 必须先 ansi.Strip 再数字形——竖线是「字形 + 前景色」，Strip 不影响字形本身。
+// ⚠️ 必须先 ansi.Strip 再数字形——竖条是「字形 + 前景色/背景色」，Strip 不影响字形本身。
 // 彩色主题下线走终端主题色、黑白主题走近白，字形在两种主题下一致，探针不挑主题。
+// ⚠️ 字形一律引用 dialogEdgeLeft 常量，别写字面量：换字形时才能一处改全（见 box.go）。
 func isBoxRow(line string) bool {
-	return strings.Count(ansi.Strip(line), "│") == 2
+	return strings.Count(ansi.Strip(line), dialogEdgeLeft) == 2
 }
 
-// dialogEdgeSeq 是**彩色主题**下竖线字符（▏/▕）的前景色序列 —— 细线由字形墨迹画，
-// 颜色来自 boxEdge 的前景色（见 box.go 的 dialogEdgeLeft 与 styles.go 的 boxEdge）。
+// dialogEdgeSeq 是**彩色主题**下竖线格子的样式序列（含前景色与面板底色）——
+// 细线由字形墨迹画，颜色来自 boxEdge（见 box.go 的 dialogEdgeLeft 与 styles.go 的 boxEdge）。
 // 只有断言竖线本体的测试会用到它，那几条都显式按彩色主题建模型
 // （黑白主题下这条线走近白色，见 newStyles 的 monochrome 分支）。
 func dialogEdgeSeq() string {
@@ -256,7 +260,7 @@ func TestResponsiveHomeHasCompactIdentity(t *testing.T) {
 	m.height = 18
 	m.recalculateLayout()
 	m.refreshContent()
-	page := m.renderPage()
+	page := m.renderViewportContent()
 	if !strings.Contains(page, "SIZHOU") {
 		t.Fatal("compact home identity is missing")
 	}
@@ -318,15 +322,28 @@ func TestMenuDoesNotMovePromptBox(t *testing.T) {
 	}
 }
 
-func TestLongContentStillUsesScrollableViewport(t *testing.T) {
+// TestLongContentUsesChatScrolling 长内容不靠独立页面 + viewport 滚动，
+// 而是走对话流：内容超出可见区时，PgUp 才推得动 chatOffset。
+// （2026-09-20 独立页面机器删除后，原来的 changeScreen(screenAbout) 写法已不可用。）
+func TestLongContentUsesChatScrolling(t *testing.T) {
 	m := testModel(t)
 	m.width = 80
 	m.height = 24
-	m.resume.About.Summary = strings.Repeat("这是一段用于验证滚动区域的长内容。", 100)
-	m.changeScreen(screenAbout)
+	m.recalculateLayout()
+	m.refreshContent()
 
-	if got, want := m.viewport.Height(), m.height-5; got != want {
-		t.Fatalf("viewport height = %d, want %d for long content", got, want)
+	m.submit("/experience")
+	m.finishStreaming()
+
+	metrics := m.homeMetrics()
+	total := len(m.conversationLines(metrics.contentWidth))
+	if total <= metrics.conversation {
+		t.Fatalf("前置条件：内容应当超出可见区（共 %d 行，可见 %d 行）", total, metrics.conversation)
+	}
+
+	m, _ = sendMsg(m, tea.KeyPressMsg{Code: tea.KeyPgUp})
+	if m.chatOffset == 0 {
+		t.Fatal("内容超出可见区时 PgUp 应当能往回翻")
 	}
 }
 
@@ -337,13 +354,9 @@ func TestCommandSuggestionsIncludeProjects(t *testing.T) {
 	}
 }
 
-func TestHeaderDoesNotAssumeSSHConnection(t *testing.T) {
-	m := testModel(t)
-	header := m.renderHeader(80)
-	if !strings.Contains(header, "TUI SESSION") || strings.Contains(header, "SSH RESUME") {
-		t.Fatalf("unexpected header: %q", header)
-	}
-}
+// 原来的 TestHeaderDoesNotAssumeSSHConnection 随 renderHeader 一起删掉了：
+// 顶部 header（「ZHANG / ABOUT」+「TUI SESSION」徽章）属于独立页面那套布局，
+// 现在整个 TUI 只有一块屏、根本不渲染 header，那条断言没有对象了。
 
 func TestLogoGlyphsKeepExpectedShape(t *testing.T) {
 	if got := len(logoLetters); got != 6 {
@@ -359,14 +372,15 @@ func TestLogoGlyphsKeepExpectedShape(t *testing.T) {
 func TestGradientColorEndpoints(t *testing.T) {
 	from := parseHexColor(colorAccent)
 	to := parseHexColor(colorSuccess)
-	if got := gradientColor(from, to, 0, 1); got != "#22D3EE" {
-		t.Fatalf("gradientColor(t=0) = %s, want #22D3EE", got)
+	if got := gradientColor(from, to, 0, 1); got != colorAccent {
+		t.Fatalf("gradientColor(t=0) = %s, want %s (colorAccent)", got, colorAccent)
 	}
 	if got := gradientColor(from, to, 1, 1); got != "#4ADE80" {
 		t.Fatalf("gradientColor(t=1) = %s, want #4ADE80", got)
 	}
-	if got := gradientColor(from, to, 0, 0.5); got != "#116977" {
-		t.Fatalf("gradientColor(t=0,ratio=0.5) = %s, want #116977", got)
+	// 半亮度期望值随 colorAccent 变（各通道折半：#00BBF9 → #005D7C）。
+	if got := gradientColor(from, to, 0, 0.5); got != "#005D7C" {
+		t.Fatalf("gradientColor(t=0,ratio=0.5) = %s, want #005D7C", got)
 	}
 }
 
@@ -469,17 +483,21 @@ func TestRuneCountSupportsChinese(t *testing.T) {
 	}
 }
 
-// TestDialogBoxHasNoSurfaceFill 锁住框区的「不上色」设计（2026-09-19 用户裁定）：
-// 输入框中间**不得出现任何背景色序列**。原因见 box.go renderDialog——
-// macOS 输入法组词会从光标处向行尾整行擦除（BCE），擦除填充色 = 终端遗留画笔背景色；
-// 只要框行带任何与页面底色不同的填充，填充色落在框外边距上就是「打字时框外突出色块」。
-// 框行 = 左右两条 │ 竖线 + 不上色的中间区域；框内只保留一行输入区（上下各一行内边距）。
-func TestDialogBoxHasNoSurfaceFill(t *testing.T) {
-	m := testModel(t)
+// TestDialogBoxHasSurfaceFill 锁住框区的灰面板设计（2026-09-20 用户要求对齐
+// OpenCode 截图样式，推翻了 2026-09-19 的「不上色」裁定）：
+// 彩色主题下输入框每一行都必须铺 colorInputSurface 背景；黑白主题保持不上色。
+// 曾经的「IME 组词灰块」代价已通过页面底色 #0D0D0D（与面板只差 Δ19）消解，
+// 见 styles.go colorBackground 与 box.go renderDialog。
+// 框行 = 左右两个主题色竖条 + 铺底色的中间区域；框内只保留一行输入区（上下各一行内边距）。
+func TestDialogBoxHasSurfaceFill(t *testing.T) {
+	m := testColorModel(t)
 	m.width = 100
 	m.height = 30
 	m.recalculateLayout()
 	m.refreshContent()
+
+	// 面板底色 #201E1E 的 SGR 背景序列。
+	const surfaceSeq = "48;2;32;30;30"
 
 	box := m.renderPromptBox(72)
 	lines := strings.Split(box, "\n")
@@ -487,10 +505,37 @@ func TestDialogBoxHasNoSurfaceFill(t *testing.T) {
 		t.Fatalf("box lines = %d, want 3 (1 padding + 1 content + 1 padding)", len(lines))
 	}
 	for index, line := range lines {
-		// "48;2;"/"48;5;" 是背景色的SGR参数，组合序列（如 \x1b[1;48;2;…m）里同样会出现；
-		// 前景色参数是 38;…，不会被误伤。
+		if !strings.Contains(line, surfaceSeq) {
+			t.Fatalf("box line %d lost the surface fill (%s):\n%q", index, colorInputSurface, line[:120])
+		}
+	}
+
+	// 文字格也不能露黑：嵌套内容（textinput、提示字符）内部的每个样式闭合
+	// 都会清掉底色，renderDialog 必须在每个 reset 后重新打开面板底色
+	// （见 box.go）。断言：框行内部（去掉左右竖线格）的每个 \x1b[m 后面
+	// 都紧跟面板底色序列。
+	colorStyles := newStyles(false)
+	probe := colorStyles.inputSurface.Render(" ")
+	bgReopen := probe[:strings.IndexByte(probe, ' ')]
+	leftEdge := colorStyles.boxEdge.Render(dialogEdgeLeft)
+	rightEdge := colorStyles.boxEdge.Render(dialogEdgeRight)
+	for index, line := range lines {
+		interior := strings.TrimSuffix(strings.TrimPrefix(line, leftEdge), rightEdge)
+		if got, want := strings.Count(interior, "\x1b[m"), strings.Count(interior, "\x1b[m"+bgReopen); got != want {
+			t.Fatalf("box line %d has %d bare resets (want each followed by the surface bg, %d):\n%q",
+				index, got-want, want, line[:160])
+		}
+	}
+
+	// 黑白主题不铺底色（保持纯黑白）。
+	mono := testModel(t)
+	mono.width = 100
+	mono.height = 30
+	mono.recalculateLayout()
+	mono.refreshContent()
+	for index, line := range strings.Split(mono.renderPromptBox(72), "\n") {
 		if strings.Contains(line, "48;2;") || strings.Contains(line, "48;5;") {
-			t.Fatalf("box line %d carries a background color (must stay unfilled):\n%q", index, line[:80])
+			t.Fatalf("monochrome box line %d carries a background color:\n%q", index, line[:120])
 		}
 	}
 }
@@ -580,13 +625,16 @@ func TestNoPersistentTipRow(t *testing.T) {
 	}
 }
 
-// TestDialogBoxEdgesHugThePanel 锁住竖线怎么画（用户 2026-09-19 晚间改定）：
-// 线是**制表符 │ + 前景色**，纵向贯通不断开、上下齐平；中间区域**不上色**（同日裁定，
-// 根治输入法擦除显形，见 box.go renderDialog 与 TestDialogBoxHasNoSurfaceFill）。
+// TestDialogBoxEdgesHugThePanel 锁住竖条怎么画（2026-09-20 晚改定，参考 opencode 截图）：
+// 线由**整格背景色**画成实心条（主题色铺满那一格），紧贴面板外缘；
+// 灰面板严格夹在两条实心条之间 —— 就是用户要的「输入框放在两条蓝线的里面」。
 //
-// 取舍记一笔：方块字符 ▏/▕ 够细但墨迹高度填不满一格（切成三段，用户不要断开的）；
-// 整格背景色连续但太粗；│ 连续、细、等高，唯独水平居中、离框边缘差约半格
-// —— 终端字符网格下仅剩的取舍点（详见 box.go 注释）。
+// 为什么不是字形墨迹（详见 box.go 注释）：字形墨迹由字体决定，画不出「贴边 + 连续 +
+// 满格」；而且 box-drawing 类的 │ 墨迹比格还高，会从框底漏出去显形（2026-09-20 用户
+// 报的「下面还有旧的竖线露出来」）。整格背景色与字体无关，必然贴边、等高、连续无缝。
+//
+// 格内仍写 dialogEdgeLeft，但前景色 = 背景色（因此不可见）—— 留着这个字形是因为
+// frameCursor（钉 IME 硬件光标）与 isBoxRow 都按它认框行，换成空格会让那批探针静默失效。
 func TestDialogBoxEdgesHugThePanel(t *testing.T) {
 	m := testColorModel(t)
 	m.width = 100
@@ -601,48 +649,61 @@ func TestDialogBoxEdgesHugThePanel(t *testing.T) {
 	if !strings.Contains(edge, "38;2;") {
 		t.Fatalf("edge style = %q, want a truecolor foreground", edge)
 	}
+	// 新契约：线本体是**格子背景色**铺满整格，所以背景必须也是终端主题色。
+	// 少了这条，线就退回成「字形墨迹浮在面板上」的老样子。
+	if !strings.Contains(edge, "48;2;22;184;243") {
+		t.Fatalf("edge style = %q, want the theme color as cell background (实心条)", edge)
+	}
 
 	lines := strings.Split(m.renderPromptBox(72), "\n")
 	for index, line := range lines {
-		// 每行都是「细竖线 + 不上色的输入区 + 细竖线」：左右各一段，不多不少。
+		// 每行都是「实心条 + 铺底色的输入区 + 实心条」：左右各一段，不多不少。
 		if count := strings.Count(line, edge); count != 2 {
 			t.Fatalf("box line %d has %d edge cells, want 2 (左右各一条竖线):\n%q",
 				index, count, ansi.Strip(line))
 		}
-		// 线字符本身必须紧跟在线色之后（前景色确实落在 │ 上，不是空序列）。
+		// 线字符仍必须紧贴线色：保留这个字形是故意的（探针认框行用），
+		// 只是前景色与背景色相同，所以看不见。
 		plain := ansi.Strip(line)
-		if !strings.HasPrefix(plain, "│") || !strings.HasSuffix(plain, "│") {
-			t.Fatalf("box line %d does not start/end with the thin edge glyphs: %q", index, plain)
+		if !strings.HasPrefix(plain, dialogEdgeLeft) || !strings.HasSuffix(plain, dialogEdgeLeft) {
+			t.Fatalf("box line %d does not start/end with the edge glyphs: %q", index, plain)
 		}
-		// 框行不得带任何背景色（不上色设计，见 TestDialogBoxHasNoSurfaceFill）。
-		if strings.Contains(line, "48;2;") || strings.Contains(line, "48;5;") {
-			t.Fatalf("box line %d carries a background color:\n%q", index, ansi.Strip(line))
+		// 实心条与面板之间不能留缝：面板底色必须紧跟在竖线之后。
+		if !strings.Contains(line, "48;2;32;30;30") {
+			t.Fatalf("box line %d lost the surface fill next to the edges:\n%q", index, ansi.Strip(line))
 		}
 	}
 }
 
-// TestDialogEdgeCellsAreThinSingleColumn 锁住竖线那一格的内容与宽度（用户 2026-09-19 晚间改定）。
+// TestDialogEdgeCellsAreThinSingleColumn 锁住竖条那一格的内容与宽度（2026-09-20 晚改定）。
 //
-// 两侧必须是**制表符 │**（U+2502）：终端里唯一细（1–2px）、纵向连续不断开、
-// 与面板等高的画法（方块字符墨迹高度由字体决定、会被切成几段；整格背景色又太粗，见 box.go）。
-// 必须恰好 1 列宽，否则整行宽度随主题漂移、把输入框挤歪。
-// 代价：│ 在格子里水平居中，离面板边缘差约半格 —— 终端字符网格下仅剩的取舍点。
-// （2026-09-19 白天是「空格 + 整格背景色」，因太粗被否；晚间短暂试过 ▏/▕，因断成几段被否。）
+// 那一格必须恰好 1 列宽，否则整行宽度随主题漂移、把输入框挤歪。
+// 格内写 dialogEdgeLeft：线本体由**背景色**画（整格实心），这个字形只是留给探针认框行
+// 的锚点，前景色与背景色相同所以看不见 —— 详见 box.go 与 TestDialogBoxEdgesHugThePanel。
+//
+// 历史（别再反复）：2026-09-19 白天「空格 + 整格背景色」因太粗被否；晚间 │ 字形法
+// （细、连续、等高）胜出，但它水平居中、浮在面板灰底上；2026-09-20 晚用户拿 opencode
+// 截图判定「蓝线压在输入框上」不好看 —— 定为整格背景色实心条；当晚又被用户发现 │ 的
+// 墨迹从框底漏出 3px，遂把占位字形从 │ 换成墨迹不出格的 ǀ（见 box.go 的候选实测表）。
 func TestDialogEdgeCellsAreThinSingleColumn(t *testing.T) {
 	for _, edge := range []string{dialogEdgeLeft, dialogEdgeRight} {
-		if edge != "│" {
-			t.Fatalf("edge cell content = %q, want %q (制表符细线，见 box.go)", edge, "│")
+		if edge != dialogEdgeLeft {
+			t.Fatalf("edge cell content = %q, want %q (占位字形，见 box.go)", edge, dialogEdgeLeft)
 		}
 		if width := ansi.StringWidth(edge); width != 1 {
 			t.Fatalf("edge cell is %d columns wide, want 1", width)
 		}
 	}
-	// 彩色主题下线的颜色必须是终端主题色（RGB 22,184,243）走前景色。
+	// 彩色主题下这一格的前景与背景**同为**终端主题色（RGB 22,184,243）：
+	// 前景色 = 背景色 ⇒ 字形不可见，用户看到的就是整格实心条。
 	styled := newStyles(false).boxEdge.Render(dialogEdgeLeft)
 	if !strings.Contains(styled, "38;2;22;184;243") {
 		t.Fatalf("edge style renders %q, want the theme color as glyph foreground", styled)
 	}
-	// 黑白主题下不引色，走的是近白色。
+	if !strings.Contains(styled, "48;2;22;184;243") {
+		t.Fatalf("edge style renders %q, want the theme color as cell background (实心条)", styled)
+	}
+	// 黑白主题下不引色，走的是近白色（且不铺底色，仍是细线，保持纯黑白）。
 	if mono := newStyles(true).boxEdge.Render(dialogEdgeLeft); strings.Contains(mono, "22;184;243") {
 		t.Fatalf("monochrome edge leaked the theme color: %q", mono)
 	}
@@ -668,8 +729,8 @@ func TestFrameCursorPinsHardwareCursorToCaret(t *testing.T) {
 		t.Fatal("View().Cursor is nil, want the hardware cursor pinned inside the input box")
 	}
 
-	// 独立复算期望位置：输入行 = 带左右 │ 的 3 行框里中间那行（框区无底色，按字形找）；
-	// 列 = 行内左缘 │ + 5（1 边框 + 2 内边距 + 2 提示字符）+ 光标前文本的显示格数。
+	// 独立复算期望位置：输入行 = 带左右竖条字形的 3 行框里中间那行（按字形找）；
+	// 列 = 行内左缘字形 + 5（1 边框 + 2 内边距 + 2 提示字符）+ 光标前文本的显示格数。
 	content := m.renderHomeLayout(m.viewport.Width())
 	lines := strings.Split(content, "\n")
 	rows := boxRows(lines)
@@ -677,7 +738,7 @@ func TestFrameCursorPinsHardwareCursorToCaret(t *testing.T) {
 		t.Fatalf("box rows = %v, want exactly 3 prompt-box rows", rows)
 	}
 	plain := ansi.Strip(lines[rows[1]])
-	left := strings.Index(plain, "│")
+	left := strings.Index(plain, dialogEdgeLeft)
 	if left < 0 {
 		t.Fatalf("input row %d has no left edge glyph: %q", rows[1], plain)
 	}
@@ -713,7 +774,7 @@ func TestFrameCursorCaretUsesDisplayCellsNotRunes(t *testing.T) {
 		t.Fatalf("box rows = %v, want exactly 3 prompt-box rows", rows)
 	}
 	plain := ansi.Strip(lines[rows[1]])
-	left := strings.Index(plain, "│")
+	left := strings.Index(plain, dialogEdgeLeft)
 	marginLeft := max((m.width-m.viewport.Width())/2, 0)
 	// 「大帅」= 2 rune 但 4 格；若按 rune 数会差 2 格。
 	if want := marginLeft + left + 5 + 4; v.Cursor.X != want {
@@ -851,4 +912,359 @@ func TestPromptPlaceholderSwitchesWhenNarrow(t *testing.T) {
 	if got := m.input.Placeholder; got != homePlaceholder {
 		t.Fatalf("placeholder after widening = %q, want the long one", got)
 	}
+}
+
+// ---------- 首页「连按两次 Esc 退出」与输入框下方的常驻操作提示 ----------
+
+// homeHintModel 返回一个宽屏首页模型：提示行有位置放整句文案。
+func homeHintModel(t *testing.T) Model {
+	t.Helper()
+	m := testModel(t)
+	m.width, m.height = 100, 30
+	m.recalculateLayout()
+	m.refreshContent()
+	return m
+}
+
+// homeRows 渲染一次首页并切成行。
+func homeRows(m Model) []string {
+	return strings.Split(m.renderHomeLayout(m.viewport.Width()), "\n")
+}
+
+// sendMsg 投递一条消息，返回更新后的模型与命令。
+func sendMsg(m Model, msg tea.Msg) (Model, tea.Cmd) {
+	updated, cmd := m.Update(msg)
+	return updated.(Model), cmd
+}
+
+// escKey 是「按一下 Esc」。
+func escKey() tea.KeyPressMsg { return tea.KeyPressMsg{Code: tea.KeyEscape} }
+
+// TestDoubleEscQuitsFromHome 覆盖用户 2026-09-20 指定的退出方式：
+// 第一次 Esc 只**武装**并明确提示还差一下，窗口内再按一次才真退出。
+func TestDoubleEscQuitsFromHome(t *testing.T) {
+	m := homeHintModel(t)
+
+	m, cmd := sendMsg(m, escKey())
+	if !m.escArmed {
+		t.Fatal("第一次 Esc 之后应当处于「待退出」状态")
+	}
+	if cmd == nil {
+		t.Fatal("第一次 Esc 之后应当挂上超时命令，否则提示会一直挂在屏幕上")
+	}
+	if msg := cmd(); msg != (escTimeoutMsg{}) {
+		t.Fatalf("第一次 Esc 的命令 = %T, want escTimeoutMsg", msg)
+	}
+	if rowOf(homeRows(m), homeHintArmed) == -1 {
+		t.Fatalf("武装后提示行应当换成 %q", homeHintArmed)
+	}
+
+	m, cmd = sendMsg(m, escKey())
+	if m.escArmed {
+		t.Fatal("退出时应当把武装状态清掉")
+	}
+	if cmd == nil {
+		t.Fatal("第二次 Esc 应当返回退出命令")
+	}
+	if msg := cmd(); msg != (tea.QuitMsg{}) {
+		t.Fatalf("第二次 Esc 的命令 = %T, want tea.QuitMsg", msg)
+	}
+}
+
+// TestSingleEscExpiresWithoutQuitting 只按一次不会退出：窗口过期后自动撤销武装，
+// 提示行换回常态（否则那句「再按一次」会像卡住了一样一直挂着）。
+func TestSingleEscExpiresWithoutQuitting(t *testing.T) {
+	m := homeHintModel(t)
+	m, _ = sendMsg(m, escKey())
+	if !m.escArmed {
+		t.Fatal("第一次 Esc 之后应当武装")
+	}
+
+	m, cmd := sendMsg(m, escTimeoutMsg{})
+	if m.escArmed {
+		t.Fatal("窗口过期后应当撤销武装")
+	}
+	if cmd != nil {
+		t.Fatal("超时不该产生额外命令")
+	}
+	if rowOf(homeRows(m), homeHint) == -1 {
+		t.Fatalf("过期后提示行应当换回 %q", homeHint)
+	}
+	if rowOf(homeRows(m), homeHintArmed) != -1 {
+		t.Fatal("过期后不该还显示武装中的提示")
+	}
+}
+
+// TestEscArmCancelledByAnyOtherKey 「Esc → 打字 → Esc」不能被算成连按两次。
+func TestEscArmCancelledByAnyOtherKey(t *testing.T) {
+	m := homeHintModel(t)
+	m, _ = sendMsg(m, escKey())
+	if !m.escArmed {
+		t.Fatal("第一次 Esc 之后应当武装")
+	}
+
+	m, _ = sendMsg(m, tea.KeyPressMsg{Code: 'a', Text: "a"})
+	if m.escArmed {
+		t.Fatal("别的按键应当撤销武装")
+	}
+	if m.input.Value() == "" {
+		t.Fatal("前置条件：字母应当写进输入框")
+	}
+
+	m.input.Reset()
+	m, cmd := sendMsg(m, escKey())
+	if !m.escArmed {
+		t.Fatal("输入框清空后 Esc 应当重新武装")
+	}
+	// 没走退出分支的凭证：退出那条路会把 escArmed 清掉再返回 tea.Quit。
+	// （不去执行 cmd()——那是 800ms 的 tea.Tick，会在测试里白等一拍。）
+	if cmd == nil {
+		t.Fatal("重新武装时应当挂上超时命令")
+	}
+}
+
+// TestEscWhileBusyNeverArmsExit 正在打印 / 正在等后端时，Esc 仍然是「跳过 / 中止」，
+// 绝不能顺手武装退出——用户等回答时习惯连按 Esc，误触代价太大。
+func TestEscWhileBusyNeverArmsExit(t *testing.T) {
+	m := homeHintModel(t)
+	m.submit("/skills")
+	if !m.streaming {
+		t.Fatal("前置条件：/skills 应当进入流式打印")
+	}
+	m, _ = sendMsg(m, escKey())
+	if m.streaming {
+		t.Fatal("打印中按 Esc 应当跳过流式，把整段答案一次显示出来")
+	}
+	if m.escArmed {
+		t.Fatal("打印中按 Esc 是「跳过」，不该武装退出")
+	}
+
+	m.aiClient = &fakeAI{}
+	_ = m.submit("他在哪？")
+	if !m.awaiting {
+		t.Fatal("前置条件：提交自由提问后应当处于等待后端的状态")
+	}
+	m, _ = sendMsg(m, escKey())
+	if m.awaiting || m.escArmed {
+		t.Fatalf("等后端时按 Esc 只该中止生成：awaiting=%v armed=%v", m.awaiting, m.escArmed)
+	}
+}
+
+// 原来的 TestEscExitIsHomeOnly 随独立页面机器一起删掉了：
+// 它断言的是「非首页按 Esc 不参与连按退出」，而现在根本没有非首页——
+// 整个 TUI 只有一块屏，Esc 的层级由 TestEscReturnsToLatestWhenReviewingHistory
+// 和 TestEscLadderAbortsStreamThenQuits 覆盖。
+
+// TestHomeHintSitsUnderPromptBox 锁住用户 2026-09-20 指定的位置与式样：
+// 常驻操作提示在输入框下方、与框**隔一个空行**（贴太紧太挤，用户第二次调整），
+// 左缘与输入框左竖线同列（「对话框的左下角」），样式参考 OpenCode 的提示行。
+func TestHomeHintSitsUnderPromptBox(t *testing.T) {
+	m := homeHintModel(t)
+	lines := homeRows(m)
+
+	box := boxRow(lines)
+	hint := rowOf(lines, homeHint)
+	if box == -1 || hint == -1 {
+		t.Fatalf("box=%d hint=%d，两者都该存在：\n%s", box, hint, strings.Join(lines, "\n"))
+	}
+	// 框占 box-1 / box / box+1 三行，往下空一行才是提示行。
+	if hint != box+3 {
+		t.Fatalf("提示行 = %d, want %d（与输入框之间隔一个空行）", hint, box+3)
+	}
+	if gap := ansi.Strip(lines[box+2]); strings.TrimSpace(gap) != "" {
+		t.Fatalf("输入框与提示行之间应当是空行，实际为 %q", gap)
+	}
+
+	// 输入框是居中渲染的：它左竖线所在的列就是提示行该缩进的列数。
+	edge := strings.Index(ansi.Strip(lines[box]), dialogEdgeLeft)
+	plain := ansi.Strip(lines[hint])
+	indent := len(plain) - len(strings.TrimLeft(plain, " "))
+	if indent != edge {
+		t.Fatalf("提示行缩进 = %d, want %d（与输入框左缘对齐）", indent, edge)
+	}
+	// 提示行不能出现竖条字形，否则会被 isBoxRow 当成输入框的一行。
+	if strings.Contains(plain, dialogEdgeLeft) {
+		t.Fatalf("提示行不该出现竖线：%q", plain)
+	}
+}
+
+// TestHomeHintTextIsSingleAndStable 2026-09-20 二次收窄：提示行**只留双击 Esc 这一条**，
+// 原先的 `| ctrl+c 退出 | / 命令 | enter 发送` 全删。文案短到任何能用的宽度都放得下，
+// 因此宽度变化不再切换文案（旧的「窄屏换短句」那套已随短句一起删掉）。
+func TestHomeHintTextIsSingleAndStable(t *testing.T) {
+	hintAt := func(cols int) string {
+		m := testModel(t)
+		m.width, m.height = cols, 24
+		m.recalculateLayout()
+		m.refreshContent()
+		for _, line := range homeRows(m) {
+			if plain := ansi.Strip(line); strings.Contains(plain, "退出") {
+				return strings.TrimSpace(plain)
+			}
+		}
+		return ""
+	}
+	for _, cols := range []int{120, 62, 50, 30} {
+		if got := hintAt(cols); got != homeHint {
+			t.Fatalf("%d 列时提示 = %q, want %q", cols, got, homeHint)
+		}
+	}
+	for _, gone := range []string{"ctrl+c 退出", "/ 命令", "enter 发送"} {
+		if got := hintAt(120); strings.Contains(got, gone) {
+			t.Fatalf("提示行不该再出现 %q，实际 %q", gone, got)
+		}
+	}
+}
+
+// TestHomeHintRowDoesNotMovePromptBox 输入框下方的三行（间距空行 / 提示行 / notice 行）
+// 是固定占位：chrome 总高度写死在 blockHeight 里，所以改文案（武装态、notice）
+// 不能让输入框上下跳。注意 +3 是**有意**的（2026-09-20 加了间距空行，输入框整体上移一行）。
+func TestHomeHintRowDoesNotMovePromptBox(t *testing.T) {
+	m := homeHintModel(t)
+	metrics := m.homeMetrics()
+	// 输入框自身的高度：3 行（单行输入区 + 上下各一行内边距）。
+	boxHeight := len(strings.Split(m.renderPromptBox(metrics.boxWidth), "\n"))
+	if want := metrics.menuHeight + boxHeight + 3; metrics.blockHeight != want {
+		t.Fatalf("blockHeight = %d, want %d（输入框 + 间距空行 + 提示行 + notice 行）", metrics.blockHeight, want)
+	}
+
+	before := boxRow(homeRows(m))
+	m.escArmed = true // 武装态只是换文案，同样不许移位
+	if after := boxRow(homeRows(m)); after != before {
+		t.Fatalf("武装提示让输入框移动了：%d -> %d", before, after)
+	}
+	m.escArmed = false
+	m.notice = "已选择项目 01，按 Enter 查看详情。"
+	if after := boxRow(homeRows(m)); after != before {
+		t.Fatalf("notice 让输入框移动了：%d -> %d", before, after)
+	}
+}
+
+// TestEscReturnsToLatestWhenReviewingHistory 2026-09-20：输入框为空时，Esc 的第一层
+// 语义是「回到最新」，下一层才是连按两次退出。
+// 改前的写法是 scrollChat(+conversation)，等于按一下 Esc 就往回翻一屏 ——
+// 想退出却只按了一下的人，会看到画面莫名其妙被顶走，而且 /help 写的是「返回上一级」，
+// 跟实现完全对不上。
+func TestEscReturnsToLatestWhenReviewingHistory(t *testing.T) {
+	m := homeHintModel(t)
+	m.submit("/skills") // 攒够内容，PgUp 才有得翻
+	m.finishStreaming()
+	m, _ = sendMsg(m, tea.KeyPressMsg{Code: tea.KeyPgUp})
+	if m.chatOffset == 0 {
+		t.Fatal("前置条件：PgUp 之后应当处于回看历史的状态")
+	}
+
+	m, cmd := sendMsg(m, escKey())
+	if m.chatOffset != 0 {
+		t.Fatalf("Esc 应当回到最新：chatOffset = %d, want 0", m.chatOffset)
+	}
+	if m.escArmed {
+		t.Fatal("回到最新这一下不该顺手武装退出")
+	}
+	if cmd != nil {
+		t.Fatalf("回到最新不该产生命令，got %T", cmd)
+	}
+
+	m, cmd = sendMsg(m, escKey())
+	if !m.escArmed {
+		t.Fatal("已经在最新时按 Esc 才轮到武装退出")
+	}
+	if cmd == nil {
+		t.Fatal("武装时应当挂上超时命令")
+	}
+}
+
+// ctxProbeAI 只关心一件事：交给它的 context 有没有被取消。
+// 退出时若不取消在途请求，本地看不出来（进程直接没了），
+// 但 SSH 模式下服务端进程常驻，那条流会一直挂到上游自己结束。
+type ctxProbeAI struct{ ready chan context.Context }
+
+func (p *ctxProbeAI) Stream(ctx context.Context, _ []ai.Message, _ func(string)) error {
+	p.ready <- ctx
+	<-ctx.Done()
+	return ctx.Err()
+}
+
+// TestEscLadderAbortsStreamThenQuits 把首页这一格的层级走一遍：
+// 等回答时 Esc 是「中止生成」→ 再按才武装 → 第三下才退出。
+func TestEscLadderAbortsStreamThenQuits(t *testing.T) {
+	m := homeHintModel(t)
+	probe := &ctxProbeAI{ready: make(chan context.Context, 1)}
+	m.aiClient = probe
+	if cmd := m.submit("他在哪？"); cmd == nil {
+		t.Fatal("前置条件：自由提问应当返回命令")
+	}
+	ctx := <-probe.ready
+
+	m, _ = sendMsg(m, escKey())
+	if m.awaiting {
+		t.Fatal("第一下 Esc 应当是中止生成，不是退出")
+	}
+	if m.escArmed {
+		t.Fatal("中止生成这一下不该武装退出")
+	}
+	if ctx.Err() == nil {
+		t.Fatal("中止生成必须真的取消在途请求")
+	}
+
+	m, cmd := sendMsg(m, escKey())
+	if !m.escArmed || cmd == nil {
+		t.Fatalf("第二下应当是武装：armed=%v cmd=%T", m.escArmed, cmd)
+	}
+
+	m, cmd = sendMsg(m, escKey())
+	if m.escArmed {
+		t.Fatal("退出时应当把武装状态清掉")
+	}
+	if cmd == nil || cmd() != (tea.QuitMsg{}) {
+		t.Fatalf("第三下的命令 = %T, want tea.QuitMsg", cmd)
+	}
+}
+
+// TestQuitPathsCancelInflightAI 退出前必须掐断在途的 AI 流。
+// 覆盖真正够得着的两条路：Ctrl+C、/exit。
+// （「连按两次 Esc」到不了「有请求在飞」的状态——第一下 Esc 已经把它中止了，
+// 见 TestEscLadderAbortsStreamThenQuits；实测跑一遍 pty 也确认了。）
+func TestQuitPathsCancelInflightAI(t *testing.T) {
+	inflight := func(t *testing.T) (Model, context.Context) {
+		t.Helper()
+		m := homeHintModel(t)
+		probe := &ctxProbeAI{ready: make(chan context.Context, 1)}
+		m.aiClient = probe
+		if cmd := m.submit("他在哪？"); cmd == nil {
+			t.Fatal("前置条件：自由提问应当返回命令")
+		}
+		ctx := <-probe.ready
+		if ctx.Err() != nil {
+			t.Fatal("前置条件：刚提交时请求不该已经被取消")
+		}
+		return m, ctx
+	}
+
+	check := func(t *testing.T, m Model, ctx context.Context, cmd tea.Cmd) {
+		t.Helper()
+		if cmd == nil {
+			t.Fatal("退出路径应当返回命令")
+		}
+		if msg := cmd(); msg != (tea.QuitMsg{}) {
+			t.Fatalf("命令 = %T, want tea.QuitMsg", msg)
+		}
+		if m.awaiting {
+			t.Fatal("退出时应当把等待态清掉")
+		}
+		if ctx.Err() == nil {
+			t.Fatal("退出时必须取消在途请求，否则 SSH 常驻进程里这条流会一直挂着")
+		}
+	}
+
+	t.Run("ctrl+c", func(t *testing.T) {
+		m, ctx := inflight(t)
+		m, cmd := sendMsg(m, tea.KeyPressMsg{Code: 'c', Mod: tea.ModCtrl})
+		check(t, m, ctx, cmd)
+	})
+
+	t.Run("/exit", func(t *testing.T) {
+		m, ctx := inflight(t)
+		check(t, m, ctx, m.submit("/exit"))
+	})
 }

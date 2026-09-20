@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"charm.land/bubbles/v2/textinput"
@@ -17,21 +18,13 @@ import (
 
 const Version = "0.1.0"
 
-type screen int
-
-const (
-	screenHome screen = iota
-	screenAbout
-	screenExperience
-	screenProjects
-	screenProject
-	screenSkills
-	screenContact
-	screenStatus
-	screenLog
-	screenRandom
-	screenHelp
-)
+// 说明：这里曾经有一套「独立页面」的机器（screen 枚举 + changeScreen / goBack /
+// handleHomeShortcut / renderHeader / renderStatusBar / renderFooter …），
+// 2026-09-20 整段删掉了。原因：命令输出早就改成「进对话流」渲染
+// （commandAnswer 返回正文当作回答），切页那条链再没有任何调用者，
+// 于是首页那行「按 1—5 快速浏览」、页脚的「esc 返回」、/help 的「Esc 返回上一级」
+// 全都在宣传不存在的能力。现在整个 TUI 只有一块屏：对话 + 钉在底部的输入框。
+// 旧版实现见 .workbuddy/backup/app.go.before-deadcode-2026-09-20（也在 git 历史里）。
 
 type menuItem struct {
 	command string
@@ -46,6 +39,32 @@ const (
 	noticeError
 )
 
+// 首页「连按两次 Esc 退出」（用户 2026-09-20 指定）。
+//
+// 为什么不做成按一下就退：Esc 在这个项目里还担着「中止 AI 生成 / 跳过流式打印 /
+// 清空输入 / 回到最新」四件事，单按退出会把这四个全顶掉；而用户等回答时习惯连按 Esc，
+// 单按退出几乎必然误触。两次之间给 escExitWindow 的窗口，只按一次会自己过期。
+const escExitWindow = 800 * time.Millisecond
+
+// escTimeoutMsg 由 tea.Tick 在武装窗口结束时投递，用来撤销武装状态——
+// 否则「再按一次 esc 退出」那行提示会一直挂在屏幕上，像卡住了。
+type escTimeoutMsg struct{}
+
+func escTimeoutCmd() tea.Cmd {
+	return tea.Tick(escExitWindow, func(time.Time) tea.Msg { return escTimeoutMsg{} })
+}
+
+// quit 是程序唯一的退出出口（Ctrl+C / /exit / 连按两次 Esc 都走它）。
+//
+// 为什么不能直接 return tea.Quit：退出前必须先把在途的 AI 流掐掉。
+// 本地跑进程一退就没了无所谓，但 SSH 模式下服务端进程是常驻的，
+// 访客在等回答时退出的话，那条 SSE 请求和它的 goroutine 会一直挂到上游自己结束为止。
+// （Bubble Tea 收到 tea.Quit 就去还原终端状态了，不会替我们取消 context。）
+func (m *Model) quit() tea.Cmd {
+	m.cancelAI()
+	return tea.Quit
+}
+
 type Model struct {
 	resume          profile.Resume
 	input           textinput.Model
@@ -54,7 +73,6 @@ type Model struct {
 	monochrome      bool
 	width           int
 	height          int
-	screen          screen
 	selectedProject int
 	activeProjectID string
 	history         []string
@@ -63,14 +81,19 @@ type Model struct {
 	noticeKind      noticeKind
 	menuOpen        bool
 	menuIndex       int
-	logoWide        string
-	logoCompact     string
-	chat            []chatMessage
-	streaming       bool
-	chatOffset      int
-	cursorPhase     cursorPhase
-	cursorStep      int
-	cursorSequence  []string
+
+	// escArmed 是「连按两次 Esc 退出」的中间态：第一次按下只武装，
+	// escExitWindow 内再按一次才真退出（见 escTimeoutMsg）。任何其他按键都会撤销它。
+	escArmed bool
+
+	logoWide       string
+	logoCompact    string
+	chat           []chatMessage
+	streaming      bool
+	chatOffset     int
+	cursorPhase    cursorPhase
+	cursorStep     int
+	cursorSequence []string
 
 	// 自由问答（真实 AI 流式）。aiClient 为 nil 表示没配后端地址，
 	// 此时只保留斜杠命令，输入自由文本会给出提示（见 ai.go）。
@@ -90,7 +113,6 @@ func New(resume profile.Resume, monochrome bool) Model {
 		monochrome: monochrome,
 		width:      92,
 		height:     30,
-		screen:     screenHome,
 	}
 	m.styles = newStyles(monochrome)
 	// 自由问答打的是作品集站的 /api/chat：站点地址就取简历里的 profile.website，
@@ -163,12 +185,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case cursorTickMsg:
 		return m, cursorTickCmd(m.advanceCursor())
 
+	case escTimeoutMsg:
+		// 武装窗口过了还没按第二次：撤销，底部那行提示换回常态文案。
+		m.escArmed = false
+		return m, nil
+
 	case tea.KeyPressMsg:
 		key := msg.String()
+		// 除了 Esc 自己，任何一次按键都撤销「待退出」。
+		// 否则「Esc（想回最新）→ 打字 → Esc（想清空）」会被误判成连按两次退出。
+		if key != "esc" {
+			m.escArmed = false
+		}
 		if m.menuOpen {
 			switch key {
 			case "ctrl+c":
-				return m, tea.Quit
+				cmd := m.quit()
+				return m, cmd
 			case "up":
 				m.moveMenu(-1)
 				return m, nil
@@ -178,6 +211,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "esc":
 				m.input.Reset()
 				m.closeMenu()
+				// 关菜单的这一次 Esc 不算「第一下」，否则菜单里连按两下会直接退程序。
+				m.escArmed = false
 				return m, nil
 			case "enter":
 				items := m.menuItems()
@@ -196,7 +231,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		switch key {
 		case "ctrl+c":
-			return m, tea.Quit
+			cmd := m.quit()
+			return m, cmd
 		case "ctrl+p":
 			return m, m.submit("/help")
 		case "esc":
@@ -218,8 +254,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.Reset()
 				return m, nil
 			}
-			m.scrollChat(m.homeMetrics().conversation)
-			return m, nil
+			// 走到这里：输入框是空的，也没有在生成 / 打印 —— Esc 还剩下两层语义：
+			//   1. 正在回看历史 → 回到最新（要再往回翻就用 PgUp/PgDn 或 ↑↓）
+			//   2. 已经在最新   → 连按两次退出（第一次只武装，见 escExitWindow）
+			//
+			// 这里原先调的是 scrollChat(+conversation)，那是「往上翻一页」，
+			// 跟 /help 写的「返回上一级」和代码注释里的「回到最新」都对不上号，
+			// 而且按一下 Esc（想退出没退成）会把画面莫名顶走一屏，所以改成回到最新。
+			// 「返回上一级」那一层随独立页面机器一起删掉了（见文件开头的说明）。
+			if m.chatOffset > 0 {
+				m.chatOffset = 0
+				return m, nil
+			}
+			if m.escArmed {
+				m.escArmed = false
+				// 显式接一下：`return m, m.quit()` 会先复制 m 再执行 quit，
+				// 而 quit 内部要改 aiCancel/awaiting，写成两步更不容易被误读。
+				cmd := m.quit()
+				return m, cmd
+			}
+			m.escArmed = true
+			return m, escTimeoutCmd()
 		case "pgup":
 			m.scrollChat(m.homeMetrics().conversation)
 			return m, nil
@@ -255,26 +310,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m Model) View() tea.View {
 	contentWidth := m.viewport.Width()
-	var content string
-	if m.screen == screenHome {
-		content = m.renderHomeLayout(contentWidth)
-	} else {
-		header := m.renderHeader(contentWidth)
-		status := m.renderStatusBar(contentWidth)
-		prompt := m.renderDialog(
-			m.styles.prompt.Render("› ")+m.input.View(),
-			max(contentWidth-3, 8),
-			0,
-		)
-		footer := m.renderFooter(contentWidth)
-
-		parts := []string{header, m.viewport.View(), status}
-		if m.menuOpen {
-			parts = append(parts, m.renderMenu(contentWidth))
-		}
-		parts = append(parts, prompt, footer)
-		content = strings.Join(parts, "\n")
-	}
+	content := m.renderHomeLayout(contentWidth)
 	// 帧始终保持满屏尺寸：内容变短时旧画面不会被留在屏幕上。
 	content = lipgloss.NewStyle().Width(contentWidth).Height(m.height).Render(content)
 
@@ -302,10 +338,10 @@ func (m Model) View() tea.View {
 // （2026-09-19 用户实测截图）。每帧显式定位即可修复，本地 TUI 与 SSH 访客同样生效。
 //
 // 定位算法（不信任 textinput.Cursor().X——它是 rune 数，中文 1 rune 占 2 格会偏左）：
-//  1. 从帧底部向上找带 │ 的行：输入框永远在页面最底部（下方只有提示行），最先命中的
-//     就是框；首页输入框是 3 行取中间（输入行），其他界面只有 1 行提示框直接用。
-//     （2026-09-19 起框区不再铺底色，行探测由底色序列改为 │ 字形。）
-//  2. 行内找左缘 │（首现）与右缘 │（末现）——文本起点 = 左缘 +1(边) +2(内边距) +2(提示字符)；
+//  1. 从帧底部向上找带竖线字形的行（dialogEdgeLeft）：输入框永远在页面最底部
+//     （下方只有提示行），最先命中的就是框；框是 3 行（上下各一行内边距），
+//     输入行取中间那条。（2026-09-19 起框区不再铺底色，行探测由底色序列改为字形。）
+//  2. 行内找左缘字形（首现）与右缘字形（末现）——文本起点 = 左缘 +1(边) +2(内边距) +2(提示字符)；
 //  3. 光标列 = 文本起点 + 光标前文本的**显示格数**，超宽文本被截断时贴住右缘。
 func (m Model) frameCursor(content string) *tea.Cursor {
 	c := m.input.Cursor()
@@ -315,21 +351,21 @@ func (m Model) frameCursor(content string) *tea.Cursor {
 	lines := strings.Split(content, "\n")
 	edgeRows := []int{}
 	for index := len(lines) - 1; index >= 0 && len(edgeRows) < 3; index-- {
-		if strings.Contains(ansi.Strip(lines[index]), "│") {
+		if strings.Contains(ansi.Strip(lines[index]), dialogEdgeLeft) {
 			edgeRows = append(edgeRows, index)
 		}
 	}
 	if len(edgeRows) == 0 {
 		return nil
 	}
-	// 首页的框是 3 行（上下各一行内边距），输入行取中间那条；其他界面只有 1 行。
+	// 框是 3 行（上下各一行内边距），输入行取中间那条。
 	row := edgeRows[0]
-	if m.screen == screenHome && len(edgeRows) >= 3 {
+	if len(edgeRows) >= 3 {
 		row = edgeRows[1]
 	}
 	plain := ansi.Strip(lines[row])
-	left := strings.Index(plain, "│")
-	right := strings.LastIndex(plain, "│")
+	left := strings.Index(plain, dialogEdgeLeft)
+	right := strings.LastIndex(plain, dialogEdgeLeft)
 	if left < 0 || right <= left {
 		return nil
 	}
@@ -367,7 +403,7 @@ func (m *Model) recalculateLayout() {
 
 func (m *Model) refreshContent() {
 	y := m.viewport.YOffset()
-	content := m.renderPage()
+	content := m.renderViewportContent()
 	m.viewport.SetContent(content)
 	m.resizeViewport(content)
 	m.viewport.SetYOffset(y)
@@ -383,75 +419,11 @@ func (m *Model) resizeViewport(content string) {
 	m.viewport.SetHeight(min(contentHeight, availableHeight))
 }
 
-func (m *Model) changeScreen(next screen) {
-	m.screen = next
-	m.notice = ""
-	m.applyPlaceholder()
-	m.viewport.GotoTop()
-	m.refreshContent()
-}
-
-func (m *Model) goBack() {
-	if m.screen == screenProject {
-		m.changeScreen(screenProjects)
-		return
-	}
-	if m.screen != screenHome {
-		m.changeScreen(screenHome)
-		return
-	}
-	m.notice = "已经在首页。输入 /help 查看全部命令。"
-	m.noticeKind = noticeInfo
-}
-
-func (m *Model) handleHomeShortcut(key string) bool {
-	shortcuts := map[string]screen{
-		"1": screenAbout,
-		"2": screenExperience,
-		"3": screenProjects,
-		"4": screenSkills,
-		"5": screenContact,
-		"?": screenHelp,
-	}
-	next, ok := shortcuts[key]
-	if ok {
-		m.changeScreen(next)
-	}
-	return ok
-}
-
-func (m *Model) moveProjectSelection(delta int) {
-	if len(m.resume.Projects) == 0 {
-		return
-	}
-	m.selectedProject = (m.selectedProject + delta + len(m.resume.Projects)) % len(m.resume.Projects)
-	m.notice = fmt.Sprintf("已选择项目 %s，按 Enter 查看详情。", m.resume.Projects[m.selectedProject].ID)
-	m.noticeKind = noticeInfo
-	m.refreshContent()
-}
-
 func (m *Model) rememberCommand(command string) {
 	if len(m.history) == 0 || m.history[len(m.history)-1] != command {
 		m.history = append(m.history, command)
 	}
 	m.historyIndex = len(m.history)
-}
-
-func (m *Model) moveHistory(previous bool) {
-	if len(m.history) == 0 {
-		return
-	}
-	if previous {
-		m.historyIndex = max(m.historyIndex-1, 0)
-	} else {
-		m.historyIndex = min(m.historyIndex+1, len(m.history))
-	}
-	if m.historyIndex == len(m.history) {
-		m.input.Reset()
-		return
-	}
-	m.input.SetValue(m.history[m.historyIndex])
-	m.input.CursorEnd()
 }
 
 // menuItems 是输入 / 时弹出的预设快捷命令。
@@ -516,7 +488,7 @@ func (m *Model) submit(raw string) tea.Cmd {
 		m.switchTheme(args)
 		return nil
 	case "exit":
-		return tea.Quit
+		return m.quit()
 	case "clear":
 		// 清空对话时把在途的 AI 请求也一起掐掉，否则旧流还会往空列表里插字。
 		m.cancelAI()
@@ -586,6 +558,11 @@ func (m *Model) commandAnswer(command string, args []string) (string, bool) {
 		return m.renderContact(), true
 	case "help":
 		return m.renderHelp(), true
+	case "home":
+		// /home、/首页、/返回 这几个别名一直存在，但独立页面删掉之后
+		// 已经没有「别的页面」可回了；不接这一条的话会掉进「没有找到命令」，
+		// 提示用户去输 /home —— 而 /home 正是刚打过的那个。
+		return "已经在首页了。这里只有一块屏：上方是对话，底部是输入框。\n输入 /help 查看全部命令。", true
 	}
 	if _, ok := m.resume.ProjectByID(command); ok {
 		m.activeProjectID = command
@@ -622,23 +599,6 @@ func normalizeCommand(raw string) (string, []string) {
 		fields[0] = canonical
 	}
 	return fields[0], fields[1:]
-}
-
-func (m *Model) openProject(id string) {
-	project, ok := m.resume.ProjectByID(id)
-	if !ok {
-		m.notice = fmt.Sprintf("没有找到项目 %q。输入 /projects 查看可用项目。", id)
-		m.noticeKind = noticeError
-		return
-	}
-	m.activeProjectID = project.ID
-	for index, item := range m.resume.Projects {
-		if item.ID == project.ID {
-			m.selectedProject = index
-			break
-		}
-	}
-	m.changeScreen(screenProject)
 }
 
 func (m *Model) switchTheme(args []string) {
@@ -729,73 +689,6 @@ func levenshtein(a, b string) int {
 	return previous[len(br)]
 }
 
-func (m Model) renderHeader(width int) string {
-	left := m.styles.title.Render("ZHANG") + m.styles.dim.Render(" / "+m.screenLabel())
-	if width < 58 {
-		return left
-	}
-	right := m.styles.headerBadge.Render("TUI SESSION")
-	space := strings.Repeat(" ", max(width-lipgloss.Width(left)-lipgloss.Width(right), 1))
-	return left + space + right
-}
-
-func (m Model) screenLabel() string {
-	switch m.screen {
-	case screenAbout:
-		return "ABOUT"
-	case screenExperience:
-		return "EXPERIENCE"
-	case screenProjects:
-		return "PROJECTS"
-	case screenProject:
-		return "PROJECTS / " + m.activeProjectID
-	case screenSkills:
-		return "SKILLS"
-	case screenContact:
-		return "CONTACT"
-	case screenStatus:
-		return "STATUS"
-	case screenLog:
-		return "LOG"
-	case screenRandom:
-		return "RANDOM"
-	case screenHelp:
-		return "HELP"
-	default:
-		return "TERMINAL RESUME"
-	}
-}
-
-func (m Model) renderStatusBar(width int) string {
-	if m.notice != "" {
-		prefix := "[i] "
-		style := m.styles.muted
-		switch m.noticeKind {
-		case noticeSuccess:
-			prefix, style = "[ok] ", m.styles.success
-		case noticeError:
-			prefix, style = "[error] ", m.styles.error
-		}
-		return ansi.Wrap(style.Render(prefix+m.notice), width, "")
-	}
-
-	hint := "输入 /help 查看全部命令"
-	switch m.screen {
-	case screenProjects:
-		hint = "↑↓ 选择项目 · Enter 打开 · 也可输入 /project 01"
-	case screenProject:
-		hint = "PgUp/PgDn 滚动 · Esc 返回项目列表"
-	case screenHome:
-		hint = "按 1—5 快速浏览 · 输入 / 打开快捷菜单"
-	default:
-		hint = "PgUp/PgDn 滚动 · Esc 返回首页"
-	}
-	if m.menuOpen {
-		hint = "↑↓ 选择 · Enter 执行 · Esc 关闭快捷菜单"
-	}
-	return m.styles.dim.Render(hint)
-}
-
 // renderMenu 渲染 / 快捷命令下拉框。按用户要求：不使用背景色（直接落在终端底色上），
 // 未选中项为灰色，选中项用终端主题色 (#16B8F3) 高亮——参考 Gemini CLI 的补全列表。
 func (m Model) renderMenu(width int) string {
@@ -823,48 +716,16 @@ func (m Model) renderMenu(width int) string {
 	return strings.Join(lines, "\n")
 }
 
-func (m Model) renderFooter(width int) string {
-	left := "tab 补全  ctrl+p 命令  esc 返回  ctrl+c 退出"
-	if width < 64 {
-		left = "ctrl+p 命令  esc 返回  ctrl+c 退出"
+// renderViewportContent 往 viewport 里放的兜底内容。
+//
+// 页面本身由 View → renderHomeLayout 直接渲染（对话 + 底部输入框），
+// viewport 这里只留一份居中 logo：它仍被用来量内容宽度与高度。
+func (m Model) renderViewportContent() string {
+	logo := m.logoCompact
+	if m.viewport.Width() >= logoWideMinWidth {
+		logo = m.logoWide
 	}
-	right := "v" + Version
-	left = ansi.Truncate(left, max(width-lipgloss.Width(right)-2, 1), "")
-	space := strings.Repeat(" ", max(width-lipgloss.Width(left)-lipgloss.Width(right), 1))
-	return m.styles.dim.Render(left + space + right)
-}
-
-func (m Model) renderPage() string {
-	switch m.screen {
-	case screenAbout:
-		return m.renderAbout()
-	case screenExperience:
-		return m.renderExperience()
-	case screenProjects:
-		return m.renderProjects()
-	case screenProject:
-		return m.renderProject()
-	case screenSkills:
-		return m.renderSkills()
-	case screenContact:
-		return m.renderContact()
-	case screenStatus:
-		return m.renderStatusPage()
-	case screenLog:
-		return m.renderLogPage()
-	case screenRandom:
-		return m.renderRandomPage()
-	case screenHelp:
-		return m.renderHelp()
-	default:
-		// 首页实际由 View 的 renderHomeLayout 直接渲染，
-		// viewport 里只放一份居中 logo 作为兜底内容。
-		logo := m.logoCompact
-		if m.viewport.Width() >= logoWideMinWidth {
-			logo = m.logoWide
-		}
-		return lipgloss.NewStyle().Width(m.viewport.Width()).Align(lipgloss.Center).Render(logo)
-	}
+	return lipgloss.NewStyle().Width(m.viewport.Width()).Align(lipgloss.Center).Render(logo)
 }
 
 // homeMetrics 汇总首页（对话界面）的尺寸，渲染与滚动共用同一套计算，避免两处算法漂移。
@@ -879,6 +740,8 @@ type homeMetrics struct {
 
 // homeMetrics 计算对话界面各块尺寸：
 // 自下而上是「提示行 / 输入框 / （菜单打开时的下拉框）」，其余空间留给对话区。
+// 其中「提示行」是输入框下面的三行：**空行间距 + 常驻操作提示 + notice**（见 renderHomeLayout）。
+// 空行是用户 2026-09-20 要求的：提示紧贴框下沿太挤，参考 OpenCode 隔开一行。
 func (m Model) homeMetrics() homeMetrics {
 	contentWidth := max(m.viewport.Width(), 1)
 	boxWidth := min(contentWidth-8, 72)
@@ -887,8 +750,8 @@ func (m Model) homeMetrics() homeMetrics {
 	}
 	box := m.renderPromptBox(boxWidth)
 	menuHeight := m.menuRows()
-	// 输入框 + 中间空行 + 提示行
-	blockHeight := menuHeight + lipgloss.Height(box) + 2
+	// 输入框 + 间距空行 + 常驻操作提示行 + notice 行
+	blockHeight := menuHeight + lipgloss.Height(box) + 3
 	return homeMetrics{
 		contentWidth: contentWidth,
 		boxWidth:     boxWidth,
@@ -937,7 +800,11 @@ func (m Model) renderHomeLayout(contentWidth int) string {
 	}
 
 	parts = append(parts, strings.Split(center.Render(m.renderPromptBox(metrics.boxWidth)), "\n")...)
-	parts = append(parts, "", center.Render(m.renderHomeTip(contentWidth)))
+	// 输入框下面三行：间距空行 + 常驻操作提示（贴左缘）+ notice。
+	// 空行让提示与框拉开距离（用户 2026-09-20：紧贴太挤）。
+	parts = append(parts, "")
+	parts = append(parts, m.renderHomeHint(metrics))
+	parts = append(parts, center.Render(m.renderHomeTip(contentWidth)))
 	return strings.Join(parts, "\n")
 }
 
@@ -948,16 +815,11 @@ const (
 	homePlaceholder         = "Ask me anything, or press / for shortcuts."
 	homePlaceholderShort    = "Ask me anything, or press /"
 	homePlaceholderMinWidth = 62
-	placeholderOtherScreens = "输入命令，/help 查看全部"
 )
 
 // applyPlaceholder 按当前宽度选占位文案。窗口尺寸一变就要重算，
 // 否则拉宽 / 收窄终端后占位文案会停在旧的那句上。
 func (m *Model) applyPlaceholder() {
-	if m.screen != screenHome {
-		m.input.Placeholder = placeholderOtherScreens
-		return
-	}
 	if m.viewport.Width() >= homePlaceholderMinWidth {
 		m.input.Placeholder = homePlaceholder
 		return
@@ -1024,6 +886,33 @@ func (m Model) renderHomeTip(width int) string {
 		prefix, style = "[error] ", m.styles.error
 	}
 	return ansi.Wrap(style.Render(prefix+m.notice), max(width, 1), "")
+}
+
+// 首页输入框下方的常驻操作提示（用户 2026-09-20 指定）：样式照 OpenCode 的提示行——
+// 灰字、贴着输入框左缘左对齐，且与输入框之间**隔一个空行**（贴太紧太挤）。
+// 2026-09-20 二次收窄：用户要求只留双击 Esc 这一条，原先那串
+// `| ctrl+c 退出 | / 命令 | enter 发送` 全部去掉——提示越干净越有人看。
+// 文案短到任何能用的宽度都放得下，不再需要「窄屏换短句」那一套。
+const (
+	homeHint      = "连按两次 esc 退出"
+	homeHintArmed = "再按一次 esc 退出"
+)
+
+// renderHomeHint 渲染输入框下方那行常驻操作提示。
+// 左缘与输入框对齐：输入框是居中渲染的，它在内容宽度里的左侧留白就是提示行的缩进
+// （用和 lipgloss Align(Center) 相同的整除算法，见 align.go 的 left = shortAmount/2）。
+// 武装中时换一句更亮的文案，告诉用户还差一下。
+func (m Model) renderHomeHint(metrics homeMetrics) string {
+	text, style := homeHint, m.styles.dim
+	if m.escArmed {
+		text, style = homeHintArmed, m.styles.muted
+	}
+	indent := max((metrics.contentWidth-metrics.boxVisual)/2, 0)
+	if indent >= metrics.contentWidth {
+		indent = 0
+	}
+	return strings.Repeat(" ", indent) +
+		style.Render(ansi.Truncate(text, max(metrics.contentWidth-indent, 1), ""))
 }
 
 func (m Model) renderAbout() string {
@@ -1287,7 +1176,7 @@ func (m Model) renderHelp() string {
 		{"/contact", "联系方式"},
 		{"/resume", "PDF 简历地址"},
 		{"/theme cyan|mono", "彩色 / 黑白主题"},
-		{"/home /clear", "返回或重置首页"},
+		{"/clear", "清空当前对话"},
 		{"/exit", "退出程序"},
 	}
 	for _, command := range commands {
@@ -1300,10 +1189,11 @@ func (m Model) renderHelp() string {
 	keys := []string{
 		"/               打开快捷命令菜单",
 		"Tab             接受自动补全建议",
-		"Ctrl+P          打开命令列表",
-		"↑ / ↓           选择项目或查看命令历史",
-		"PgUp / PgDn     滚动长内容",
-		"Esc             返回上一级",
+		"Ctrl+P          打开这个帮助页",
+		"↑ / ↓           滚动对话（输入框为空时）",
+		"PgUp / PgDn     上下翻页",
+		"Esc             清空输入 · 回看历史时回到最新",
+		"Esc Esc         连按两次退出程序",
 		"Ctrl+C          随时退出",
 	}
 	for _, key := range keys {
@@ -1365,17 +1255,6 @@ func (m Model) hyperlink(url, label string) string {
 	}
 	styled := m.styles.link.Render(label)
 	return "\x1b]8;;" + url + "\x1b\\" + styled + "\x1b]8;;\x1b\\"
-}
-
-func (m Model) SelectedProjectID() string {
-	if len(m.resume.Projects) == 0 {
-		return ""
-	}
-	return m.resume.Projects[m.selectedProject].ID
-}
-
-func (m Model) CurrentScreen() string {
-	return m.screenLabel()
 }
 
 func (m Model) HasCommandSuggestion(value string) bool {
