@@ -130,6 +130,33 @@ wrangler pages secret put TOKENHUB_MODEL   --project-name=zhangsizhou
 - 回答生成中按 `Esc` 中断，**已经收到的部分会保留**
 - 只有自由问答这条线的消息会进请求历史；斜杠命令的本地页面又长又没走过对话协议，塞进去只会把真正的上下文挤掉
 
+## 会话记录与邮件
+
+访客不需要留邮箱、不需要任何动作：他关掉终端时，这次会话里**他敲过的命令和提过的问题**会被整理成一封邮件发到作者邮箱。
+
+上报分两段（不是退出时才一次性发，那样断网就整份丢）：
+
+1. 每次提交立刻异步上报一条（在独立 goroutine 里，界面不等它）；
+2. 会话结束时再发一条收尾请求，**带上完整记录**当权威版本——逐条上报全挂了也没关系，只要关终端那一刻网络是通的，整份记录照样到齐。
+
+站点侧的 `/api/session`（`functions/api/session.ts`）收下这些记录、用 KV 归档，收尾时通过 Resend 发信。终端侧依旧只发请求、**不发信也不持密钥**。
+
+规则：
+
+- **只记访客侧**：命令与提问，AI 的回答一条都不记（回答又长，进邮件只会把时间线冲垮）
+- **空会话不发**：一次都没提交就退出，连一个包都不发
+- **失败一律静默**：访客不该看到任何错误，也不该为上报多等一秒
+- 收尾放在 SSH 中间件里（而不是模型里），这样 idle / max-session 超时、网络中断、直接关窗口也都覆盖得到
+
+调试与关闭：
+
+```bash
+./terminal-resume --local --report http://127.0.0.1:8788   # 指向本地站点
+./terminal-resume --report off                             # 彻底关闭（预览脚本默认就这么跑）
+```
+
+`--report` 留空时沿用 `profile.website`，也可以用环境变量 `TERMINAL_RESUME_REPORT`。
+
 ## 界面预览
 
 `docs/tui-preview.html` 是界面预览页，由**真实运行的二进制 + pty 原始字节流**还原（xterm.js），不是手绘稿。改了界面后重新生成：
@@ -208,6 +235,7 @@ ssh -p 23234 zhang@localhost
 --host-key PATH         SSH 主机密钥路径
 --content PATH          外部简历 YAML 文件
 --api BASE             自由问答的后端站点，默认取 profile.website；off 关闭
+--report BASE          会话上报的后端站点，默认取 profile.website；off 关闭
 --mono                  使用黑白高对比主题
 --idle-timeout 10m      空闲连接超时
 --max-session 30m       单次连接最长时间

@@ -167,7 +167,9 @@ def main() -> int:
         return 2
 
     line = options.cmd or options.ask or ""
-    args = binary_args or ["--local"]
+    # 默认顺手关掉会话上报：它默认沿用 profile.website（线上站点），
+    # 手动调试时一个不留神就会把这次调试变成一封发到作者邮箱的邮件。
+    args = binary_args or ["--local", "--report", "off"]
     if options.ask and "--api" not in args:
         print("--ask 需要自己带 --api（或让它走 profile.website 的默认后端）",
               file=sys.stderr)

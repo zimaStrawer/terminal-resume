@@ -46,7 +46,9 @@ def main():
         os.environ["COLUMNS"] = str(COLS)
         os.environ["LINES"] = str(ROWS)
         os.environ.pop("NO_COLOR", None)
-        os.execv(binary, [binary, "--local"])
+        # --report off：这个脚本数的是 TUI 自己写了多少字节，
+        # 上报请求虽然不走终端，但会白占一次网络往返，顺手关掉。
+        os.execv(binary, [binary, "--local", "--report", "off"])
 
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLS, 0, 0))
     total = 0

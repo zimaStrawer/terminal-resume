@@ -114,7 +114,10 @@ STUB_SCRIPT = os.path.join(ROOT, "scripts", "chat-stub.py")
 
 # 不涉及自由问答的会话一律 --api off：预览里不许有任何一个请求跑到真实网络上，
 # 否则网络一通、模型一换，预览就不可复现了。
-OFFLINE = ("--api", "off")
+#
+# --report off 同理，而且更容易被漏掉：会话上报默认沿用 profile.website（线上站点），
+# 于是「只是截几张图」会把一条条假会话写进线上、最后变成发给作者的邮件。
+OFFLINE = ("--api", "off", "--report", "off")
 
 
 class ChatStub:
@@ -210,7 +213,7 @@ def main():
             ("输入一句自由提问", [question], 0.3),
             ("提交后 · 回答正在流式打印", [b"\r"], 0.2),
             ("回答打印完成 · 长句自动折行，一个字都没丢", [], 3.0),
-        ], extra_args=("--api", stub.url))
+        ], extra_args=("--api", stub.url, "--report", "off"))
 
     with open(OUT, "w") as handle:
         json.dump(frames, handle)

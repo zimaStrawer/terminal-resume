@@ -13,6 +13,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 
+	"github.com/zhangsizhou/terminal-resume/internal/report"
 	"github.com/zhangsizhou/terminal-resume/profile"
 )
 
@@ -105,6 +106,10 @@ type Model struct {
 	aiSeq    int
 	aiCancel func()
 	awaiting bool
+
+	// reporter 记录「访客敲了什么」，会话结束时由外层收尾（见 report.go 与 main.go）。
+	// 默认 nil = 不上报：New 刻意不装它，免得单测一跑 submit 就真去打站点。
+	reporter *report.Reporter
 }
 
 func New(resume profile.Resume, monochrome bool) Model {
@@ -185,6 +190,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case cursorTickMsg:
 		return m, cursorTickCmd(m.advanceCursor())
 
+	case reportSentMsg:
+		// 上报任务跑完的回声：不需要做任何事（失败也在 report 包里静默掉了）。
+		return m, nil
+
 	case escTimeoutMsg:
 		// 武装窗口过了还没按第二次：撤销，底部那行提示换回常态文案。
 		m.escArmed = false
@@ -225,7 +234,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if command == "" {
 					return m, nil
 				}
-				return m, m.submit(command)
+				return m, m.submitWithReport(command)
 			}
 			m.closeMenu()
 		}
@@ -234,7 +243,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmd := m.quit()
 			return m, cmd
 		case "ctrl+p":
-			return m, m.submit("/help")
+			return m, m.submitWithReport("/help")
 		case "esc":
 			// AI 正在回答：Esc 中止生成。已经收到的部分照样留着，只是不再往下打。
 			if m.awaiting {
@@ -287,7 +296,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			m.input.Reset()
-			return m, m.submit(text)
+			return m, m.submitWithReport(text)
 		}
 
 		if m.input.Value() == "" && key == "up" {
