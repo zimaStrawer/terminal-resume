@@ -330,7 +330,9 @@ func (m Model) View() tea.View {
 
 	v := tea.NewView(content)
 	v.AltScreen = true
-	v.WindowTitle = "ZHANG — Terminal Resume"
+	// 终端标签页 / 窗口左上角的标题（OSC 2）。用户 2026-09-21 指定为 SIZHOU.ai：
+	// 与 ai.ps1 / ai.sh 里预告的短域名一致，比 ZHANG — Terminal Resume 更像一个可访问的地址。
+	v.WindowTitle = "SIZHOU.ai"
 	v.Cursor = m.frameCursor(content)
 	if !m.monochrome {
 		v.BackgroundColor = lipgloss.Color(colorBackground)
