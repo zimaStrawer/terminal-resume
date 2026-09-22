@@ -38,7 +38,20 @@ URL="${BASE_URL}/terminal-resume-${TARGET}"
 
 # 下载到临时目录，跑完自动清理
 TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+
+# cleanup 挂在 EXIT trap 上：程序无论怎么退出（正常 / Ctrl+C / 关窗口）都会删掉
+# 临时目录，并在「程序真的启动过」时回报一句，让访客知道本机不留副本。
+#
+# LAUNCHED 这个标志是必需的：下载失败、脚本提前退出时 EXIT trap 同样会跑，
+# 那种情况下不该报「已清理」——否则它会紧跟在「下载失败」后面，像在说成功了。
+LAUNCHED=0
+cleanup() {
+  rm -rf "$TMP"
+  if [[ "$LAUNCHED" == "1" ]]; then
+    printf '\n  %b✓%b 本次下载的临时文件已清理，本机不留副本\n' "$C" "$R"
+  fi
+}
+trap cleanup EXIT
 
 # 主题色 #16B8F3 真彩色 ANSI 前缀
 C="\033[38;2;22;184;243m"
@@ -105,8 +118,12 @@ final_bytes=0
 printf '\r  %b%s%b %3d%% (%sMB/%sMB)\n' "$C" "$(printf '%*s' "$W" '' | tr ' ' '█')" "$R" 100 "$(fmt_mb "$final_bytes")" "$(fmt_mb "${TOTAL:-$final_bytes}")"
 printf '\033[?25h'  # 恢复光标
 
-wait "$CURL_PID"
-CURL_EXIT=$?
+# ⚠️ 不能用裸 `wait`：下载失败时 wait 会返回非零，set -e 直接让脚本退出，
+# 下面那句「下载失败」永远打不出来（2026-09-22 实测 404：只剩 curl 自己的
+# 英文报错，访客看到的是一根跑满 100% 的进度条 + 报错，然后什么都没有）。
+# 放进 `||` 列表里，失败就不会触发 set -e。
+CURL_EXIT=0
+wait "$CURL_PID" || CURL_EXIT=$?
 if [[ $CURL_EXIT -ne 0 ]]; then
   echo "下载失败，请检查网络后重试。" >&2
   exit 1
@@ -117,7 +134,11 @@ chmod +x "${TMP}/${BIN_NAME}"
 # 直接启动（本地 TUI，不启 SSH）
 #
 # ⚠️ 这里**不能**用 exec：exec 会用新程序替换掉当前 bash 进程，而上面的
-# `trap 'rm -rf "$TMP"' EXIT` 是 shell 级机制 —— 进程被顶掉之后它永远不会触发，
+# `trap cleanup EXIT` 是 shell 级机制 —— 进程被顶掉之后它永远不会触发，
 # 结果是每跑一次就在临时目录留下一份 ~9.5 MB 的二进制（实测 16 次 = 153 MB）。
-# 普通调用即可：bash 会等程序退出，然后 EXIT trap 正常清理。
+# 普通调用即可：bash 会等程序退出，然后 EXIT trap 正常清理并回报（见 cleanup）。
+#
+# LAUNCHED=1 必须在启动**之前**置位：cleanup 靠它区分「程序真的跑起来了」
+# 和「下载/校验阶段就失败了」，后者不该报「已清理」。
+LAUNCHED=1
 "${TMP}/${BIN_NAME}" --local

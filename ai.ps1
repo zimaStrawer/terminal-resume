@@ -125,10 +125,19 @@ if ($curl) {
     }
 }
 
-# Launch directly (local TUI, no SSH)
-& $outFile --local
-$exitCode = $LASTEXITCODE
-
-# Clean up temp dir
-Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+# Launch directly (local TUI, no SSH).
+#
+# try/finally so the temp dir is removed however the program exits (normal,
+# Ctrl+C, window closed), and then tell the visitor nothing is left behind.
+# The message stays ASCII on purpose: Windows PowerShell 5.1 decodes a BOM-less
+# script with the system ANSI code page, so non-ASCII here would show up garbled.
+$exitCode = 0
+try {
+    & $outFile --local
+    $exitCode = $LASTEXITCODE
+} finally {
+    Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+    Write-Host ''
+    Write-Host ("  {0}{1}{2}" -f $C, 'Downloaded copy cleaned up. Nothing left on your machine.', $R)
+}
 if ($exitCode) { exit $exitCode }
