@@ -95,23 +95,19 @@ if ($curl) {
                 $blockFull = [string][char]0x2588
                 $blockEmpty = [string][char]0x2591
                 $bar = ($blockFull * $fill) + ($blockEmpty * $empty)
-                Write-Host -NoNewline ("`r  {0}{1}{2} {3,3}%" -f $C, $bar, $R, $pct)
+                Write-Host -NoNewline ("`r  {0}{1}{2} {3,3}% ({4:F1}MB/{5:F1}MB)" -f $C, $bar, $R, $pct, ($doneBytes / 1MB), ($total / 1MB))
                 $lastPct = $pct
             }
         } else {
             # Spinner while total is still unknown; show downloaded size for real feedback
             $i = [int]([math]::Floor($doneBytes / 1024)) % 10
-            if ($doneBytes -ge 1MB) {
-                $size = '{0:F1} MB' -f ($doneBytes / 1MB)
-            } else {
-                $size = '{0} KB' -f [int]($doneBytes / 1KB)
-            }
-            Write-Host -NoNewline ("`r  {0}{1}{2} {3}" -f $C, $spin[$i], $R, $size)
+            Write-Host -NoNewline ("`r  {0}{1}{2} {3:F1}MB" -f $C, $spin[$i], $R, ($doneBytes / 1MB))
         }
     }
     $curlExit = $proc.ExitCode
     $barFull = [string][char]0x2588 * $W
-    Write-Host ("`r  {0}{1}{2} {3,3}%" -f $C, $barFull, $R, 100)
+    $finalSize = if (Test-Path $outFile) { (Get-Item $outFile).Length } else { 0 }
+    Write-Host ("`r  {0}{1}{2} {3,3}% ({4:F1}MB/{5:F1}MB)" -f $C, $barFull, $R, 100, ($finalSize / 1MB), ($finalSize / 1MB))
     if ($useAnsi) { Write-Host -NoNewline $cursorShow }
 
     if ($curlExit -ne 0 -or -not (Test-Path $outFile) -or (Get-Item $outFile).Length -lt 1024) {

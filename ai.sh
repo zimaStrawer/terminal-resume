@@ -56,6 +56,11 @@ CURL_PID=$!
 
 # 主题色块进度条：用 █ 填充已完成部分，右侧显示真实百分比
 W=30  # 色块总宽（字符数）
+# fmt_mb 把字节数格式化成「N.NMB」（一位小数），供进度条旁显示 (已下载/总量)。
+fmt_mb() {
+  local b=${1:-0}
+  printf '%d.%d' $(( b / 1048576 )) $(( (b % 1048576) * 10 / 1048576 ))
+}
 printf '\033[?25l'  # 隐藏光标，进度条更干净
 last_pct=-1
 TOTAL=""
@@ -84,23 +89,20 @@ while kill -0 "$CURL_PID" 2>/dev/null; do
     bar=""
     [[ $fill -gt 0 ]] && bar+="$(printf '%*s' "$fill" '' | tr ' ' '█')"
     [[ $empty -gt 0 ]] && bar+="$(printf '%*s' "$empty" '' | tr ' ' '░')"
-    printf '\r  %b%s%b %3d%%' "$C" "$bar" "$R" "$pct"
+    printf '\r  %b%s%b %3d%% (%sMB/%sMB)' "$C" "$bar" "$R" "$pct" "$(fmt_mb "$done_bytes")" "$(fmt_mb "$TOTAL")"
     last_pct=$pct
   elif [[ $pct -lt 0 ]]; then
     # 旋转指示（真实下载中，总量未知）：带上已下载量，等待阶段也有真实反馈
     sp="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     i=$(( (done_bytes / 1024) % 10 ))
-    kb=$(( done_bytes / 1024 ))
-    if [[ $kb -ge 1024 ]]; then
-      printf '\r  %b%s%b %d.%d MB' "$C" "${sp:i:1}" "$R" $(( kb / 1024 )) $(( (kb % 1024) * 10 / 1024 ))
-    else
-      printf '\r  %b%s%b %d KB' "$C" "${sp:i:1}" "$R" "$kb"
-    fi
+    printf '\r  %b%s%b %sMB' "$C" "${sp:i:1}" "$R" "$(fmt_mb "$done_bytes")"
   fi
   sleep 0.05
 done
-# 收尾：补到 100%
-printf '\r  %b%s%b %3d%%\n' "$C" "$(printf '%*s' "$W" '' | tr ' ' '█')" "$R" 100
+# 收尾：补到 100%（总量未知时用最终文件大小补齐分母）
+final_bytes=0
+[[ -f "${TMP}/${BIN_NAME}" ]] && final_bytes=$(wc -c < "${TMP}/${BIN_NAME}")
+printf '\r  %b%s%b %3d%% (%sMB/%sMB)\n' "$C" "$(printf '%*s' "$W" '' | tr ' ' '█')" "$R" 100 "$(fmt_mb "$final_bytes")" "$(fmt_mb "${TOTAL:-$final_bytes}")"
 printf '\033[?25h'  # 恢复光标
 
 wait "$CURL_PID"
