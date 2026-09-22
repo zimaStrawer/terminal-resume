@@ -47,25 +47,22 @@ if ($psMajor -ge 7) {
 
 Write-Host 'Starting SIZHOU Terminal...'
 
-# Get total size (bytes) for a real percentage; fall back to a spinner if unknown
-# Cloudflare does not return Content-Length for HEAD; use GET + Range 0-0 instead
+# Total size is parsed later from the download's own response headers (curl -D
+# dumps them to disk the moment they arrive). Do NOT probe with a separate
+# Range/HEAD request here: Cloudflare Pages ignores Range (answers 200 with the
+# full body) and omits Content-Length on HEAD, so any probe downloads the whole
+# ~9.5 MB once more before the real download even starts.
 $total = 0
-try {
-    $resp = Invoke-WebRequest -Uri $url -Headers @{ Range = 'bytes=0-0' } -UseBasicParsing -TimeoutSec 15
-    $cl = [string]$resp.Headers['Content-Length']
-    if (-not $cl) { $cl = [string]$resp.Headers['Content-Range'] }
-    if ($cl) {
-        # Content-Range looks like "bytes 0-0/9983410" - take the total after "/"
-        if ($cl -match '/(\d+)$') { $total = [long]$Matches[1] }
-        elseif ($cl -match '^\d+$') { $total = [long]$cl }
-    }
-} catch { $total = 0 }
+$headersFile = Join-Path $tmp 'headers'
 
 # Background download: prefer the built-in curl.exe (Win10 1803+); fall back to Invoke-WebRequest
 $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
 if ($curl) {
+    # Quote paths: Start-Process joins ArgumentList with spaces WITHOUT quoting
+    # on PowerShell 5.1, so a temp path containing spaces (e.g. "C:\Users\Zhang San\...")
+    # would be split into broken curl arguments.
     $proc = Start-Process -FilePath $curl.Source `
-        -ArgumentList @('-fsSL', '--retry', '3', '--connect-timeout', '15', $url, '-o', $outFile) `
+        -ArgumentList @('-fsSL', '--retry', '3', '--connect-timeout', '15', '-D', "`"$headersFile`"", $url, '-o', "`"$outFile`"") `
         -PassThru -WindowStyle Hidden
 } else {
     $wc = New-Object System.Net.WebClient
@@ -81,6 +78,13 @@ if ($useAnsi) { Write-Host -NoNewline $cursorHide }
 if ($curl) {
     while (-not $proc.HasExited) {
         Start-Sleep -Milliseconds 80
+        # Response headers arrive before the body: once curl -D has flushed them,
+        # read the full-length Content-Length (only tried until it succeeds).
+        if ($total -eq 0 -and (Test-Path $headersFile)) {
+            foreach ($line in Get-Content $headersFile) {
+                if ($line -match '^[Cc]ontent-[Ll]ength:\s*(\d+)\s*$') { $total = [long]$Matches[1] }
+            }
+        }
         $doneBytes = 0
         if (Test-Path $outFile) { $doneBytes = (Get-Item $outFile).Length }
         if ($total -gt 0) {
@@ -95,8 +99,14 @@ if ($curl) {
                 $lastPct = $pct
             }
         } else {
+            # Spinner while total is still unknown; show downloaded size for real feedback
             $i = [int]([math]::Floor($doneBytes / 1024)) % 10
-            Write-Host -NoNewline ("`r  {0}{1}{2}" -f $C, $spin[$i], $R)
+            if ($doneBytes -ge 1MB) {
+                $size = '{0:F1} MB' -f ($doneBytes / 1MB)
+            } else {
+                $size = '{0} KB' -f [int]($doneBytes / 1KB)
+            }
+            Write-Host -NoNewline ("`r  {0}{1}{2} {3}" -f $C, $spin[$i], $R, $size)
         }
     }
     $curlExit = $proc.ExitCode

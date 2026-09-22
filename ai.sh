@@ -46,19 +46,25 @@ R="\033[0m"
 
 printf 'Starting SIZHOU Terminal...\n'
 
-# 预取总长：Cloudflare 对 HEAD(-I) 不返回 content-length，改用 Range 0-0 请求拿全量长度
-TOTAL="$(curl -fsSL -r 0-0 -o /dev/null -D - "$URL" 2>/dev/null | tr -d '\r' | awk 'tolower($1)=="content-length:"{print $2}' | tail -1)"
-[[ -z "${TOTAL}" ]] && TOTAL="$(curl -fsSL -o /dev/null -D - "$URL" 2>/dev/null | tr -d '\r' | awk 'tolower($1)=="content-length:"{print $2}' | tail -1)"
-
-# 后台下载（静默写文件），主循环轮询已下载字节数画主题色块进度条
-curl -fsSL --retry 3 --connect-timeout 15 "$URL" -o "${TMP}/${BIN_NAME}" &
+# 后台下载（静默写文件）；响应头随手落盘 —— 200 响应头自带全量 content-length，
+# 主循环从这份头文件里轮询总长。**不要**再单独发探测请求：Cloudflare Pages
+# 忽略 Range（对 Range 0-0 也回 200 全量）、对 HEAD 不给 content-length，
+# 任何"只拿头"的探测都会退化成把整个 ~9.5MB 文件完整下载一遍再扔掉
+# （实测 3.6s+，期间界面零反馈），等于访客每次都要下载两份。
+curl -fsSL --retry 3 --connect-timeout 15 "$URL" -D "${TMP}/headers" -o "${TMP}/${BIN_NAME}" &
 CURL_PID=$!
 
 # 主题色块进度条：用 █ 填充已完成部分，右侧显示真实百分比
 W=30  # 色块总宽（字符数）
 printf '\033[?25l'  # 隐藏光标，进度条更干净
 last_pct=-1
+TOTAL=""
 while kill -0 "$CURL_PID" 2>/dev/null; do
+  # 响应头一到就解析总长（只解析一次）；没拿到之前先走旋转指示，
+  # 这样下载一启动进度指示就出现，不用等任何探测往返。
+  if [[ -z "${TOTAL}" && -s "${TMP}/headers" ]]; then
+    TOTAL="$(tr -d '\r' < "${TMP}/headers" | awk 'tolower($1)=="content-length:"{print $2}' | tail -1)"
+  fi
   if [[ -f "${TMP}/${BIN_NAME}" ]]; then
     done_bytes=$(wc -c "${TMP}/${BIN_NAME}" 2>/dev/null | awk '{print $1}')
   else
@@ -81,10 +87,15 @@ while kill -0 "$CURL_PID" 2>/dev/null; do
     printf '\r  %b%s%b %3d%%' "$C" "$bar" "$R" "$pct"
     last_pct=$pct
   elif [[ $pct -lt 0 ]]; then
-    # 旋转指示（真实下载中，只是未知总量）
+    # 旋转指示（真实下载中，总量未知）：带上已下载量，等待阶段也有真实反馈
     sp="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
     i=$(( (done_bytes / 1024) % 10 ))
-    printf '\r  %b%s%b' "$C" "${sp:i:1}" "$R"
+    kb=$(( done_bytes / 1024 ))
+    if [[ $kb -ge 1024 ]]; then
+      printf '\r  %b%s%b %d.%d MB' "$C" "${sp:i:1}" "$R" $(( kb / 1024 )) $(( (kb % 1024) * 10 / 1024 ))
+    else
+      printf '\r  %b%s%b %d KB' "$C" "${sp:i:1}" "$R" "$kb"
+    fi
   fi
   sleep 0.05
 done
