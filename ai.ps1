@@ -119,9 +119,6 @@ if ($curl) {
     }
 }
 
-Write-Host 'Download complete. Launching...'
-Write-Host ''
-
 # Launch directly (local TUI, no SSH)
 & $outFile --local
 $exitCode = $LASTEXITCODE

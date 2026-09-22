@@ -100,7 +100,6 @@ if [[ $CURL_EXIT -ne 0 ]]; then
 fi
 
 chmod +x "${TMP}/${BIN_NAME}"
-printf '下载完成，正在启动…\n\n'
 
 # 直接启动（本地 TUI，不启 SSH）
 exec "${TMP}/${BIN_NAME}" --local
