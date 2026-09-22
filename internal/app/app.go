@@ -864,11 +864,10 @@ func (m Model) renderPromptBox(boxWidth int) string {
 }
 
 // 首页常驻收尾文案（用户 2026-09-19 指定，位置在 logo 与输入框之间）。
-// 行尾的 "_" 是静态光标——项目坚持「无持续动画」，所以它不闪烁。
+// 2026-09-22 用户要求：邀请语只留最后一句，并去掉行尾那个静态光标 "_"。
 const (
 	greetingHeadline = "感谢看到最后！"
-	greetingInvite   = "随便问问、随便逛逛，也期待有机会进一步交流"
-	greetingCursor   = "_"
+	greetingInvite   = "期待有机会进一步交流"
 	greetingTagline  = "Design Without Boundaries"
 )
 
@@ -878,7 +877,7 @@ const (
 func (m Model) greetingLines(width int) []string {
 	available := max(width, 1)
 	center := lipgloss.NewStyle().Width(available).Align(lipgloss.Center)
-	invite := m.styles.muted.Render(greetingInvite) + m.styles.themeText.Render(greetingCursor)
+	invite := m.styles.muted.Render(greetingInvite)
 	block := strings.Join([]string{
 		m.styles.title.Render(greetingHeadline),
 		invite,

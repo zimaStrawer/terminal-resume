@@ -177,7 +177,7 @@ function sizeTitle(group) {
     <li><b>框内不再重复快捷键提示</b> 旧版那行 <code>/ shortcuts  ctrl+p commands  ctrl+c exit</code> 已删除，提示统一由占位文案承担；输入框下方那一行也只在有通知（notices）时才出字。</li>
     <li><b>下拉框</b> 不设背景色（直接落在终端底色上），未选中项灰色 <code>#94A3B8</code>，选中项主题色 <code>#16B8F3</code>。</li>
     <li><b>快捷菜单</b> <code>/</code> 唤出，四条固定文案（skills / resume / log / personal），永远落在输入框正上方，不遮 logo。</li>
-    <li><b>收尾文案</b> 跟在 logo 下方：一句致谢 + 一句邀请 + 一行主题色标语 <code>Design Without Boundaries</code>。空首页时它在 logo 与输入框之间，有了回答就和 logo 一起被顶上去、最终离屏。行尾下划线是静态光标（不闪烁）。</li>
+    <li><b>收尾文案</b> 跟在 logo 下方：一句致谢 + 一句邀请 + 一行主题色标语 <code>Design Without Boundaries</code>。空首页时它在 logo 与输入框之间，有了回答就和 logo 一起被顶上去、最终离屏。</li>
     <li><b>自由问答是真实 AI</b> 输入不以 <code>/</code> 开头的文本会打到作品集站的 <code>/api/chat</code>（Cloudflare Pages Function），回答按 SSE 逐片回来。<b>终端二进制里没有任何密钥</b>，它只负责转发；密钥留在站点侧的环境变量里。默认地址取简历里的 <code>profile.website</code>（AI 和简历同一个站点），<code>--api</code> 可覆盖、<code>--api off</code> 可关闭。上文「对话」那组就是这条链路——后端用 <code>scripts/chat-stub.py</code> 这个确定性桩，回答固定，所以预览可复现、不碰网络。</li>
     <li><b>回答流式打印</b> 逐字显现，未打印到的位置留空，整页行结构不跳动。网络快慢与打字速度是解耦的：网络只负责把整段变长，打字机负责追上去，所以慢网络下也不会先卡住再一次蹦一大段。</li>
     <li><b>长回答按内容宽度折行</b> 真实 AI 回答通常是一整条<b>不含任何换行</b>的长句，必须折行显示。旧版对助手回答只做单行截断，实测一条 168 字的回答只显示出前 54 字、后面整段被静默丢掉（斜杠命令的本地回答自带换行，所以这个 bug 一直没暴露）。</li>
