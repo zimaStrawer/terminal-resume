@@ -1268,3 +1268,60 @@ func TestQuitPathsCancelInflightAI(t *testing.T) {
 		check(t, m, ctx, m.submit("/exit"))
 	})
 }
+
+// TestPromptBoxRowsAndNoNULAcrossWidths 锁住 bubbles v2.2.1 的一个坑，以及框的 3 行形态。
+//
+// textinput 的 placeholderView() 先 `p := make([]rune, Width+1)`（未填充处是 rune
+// 零值），再按 `p[1:minWidth]` 切片，而 minWidth 取的是 `lipgloss.Width(Placeholder)`
+// —— **显示宽度被当成了 rune 下标**。占位文案含 CJK 时两者不相等（现文案 31 列 / 18
+// rune），多切出来的 13 个位置全是 `\x00`：这些 NUL 混进渲染后，终端与 lipgloss 对
+// 「这行到底多宽」的认知不一致 —— 输入行左竖条丢失、面板被挤到下一行，整个框看着错位
+// （2026-09-22 用户 80x24 截图实测；英文占位文案时代 Width 恰等于 rune 数，所以没暴露）。
+//
+// renderPromptBox 现在空输入时自己渲染占位文案（不走 textinput 的 Placeholder），
+// 这里把结果锁住：各宽度下框都是 3 行、每行左右各一条竖线、整帧渲染里不含 NUL。
+func TestPromptBoxRowsAndNoNULAcrossWidths(t *testing.T) {
+	for _, width := range []int{56, 64, 72, 80, 88, 100, 140} {
+		m := testColorModel(t)
+		m.width = width
+		m.height = 24
+		m.recalculateLayout()
+		m.refreshContent()
+
+		box := m.renderPromptBox(m.homeMetrics().boxWidth)
+		if strings.ContainsRune(box, 0) {
+			t.Fatalf("width=%d: 输入框渲染里混进 NUL（bubbles placeholder 坑复发）:\n%q", width, box)
+		}
+		if lines := strings.Split(box, "\n"); len(lines) != 3 {
+			t.Fatalf("width=%d: box rows = %d, want 3", width, len(lines))
+		}
+
+		// 整帧渲染：框区域必须恰好 3 行 —— 上面那个错位的症状就是框多出一行、且竖条丢失。
+		layout := strings.Split(m.renderHomeLayout(m.viewport.Width()), "\n")
+		rows := 0
+		for _, line := range layout {
+			if isBoxRow(line) {
+				rows++
+			}
+		}
+		if rows != 3 {
+			t.Fatalf("width=%d: framed rows in full layout = %d, want 3", width, rows)
+		}
+	}
+}
+
+// TestGreetingHeadlineMatchesInvite 锁住用户 2026-09-22 的要求：
+// 第一行 headline 用与第二行 invite 完全相同的 muted 样式，不再用 title 亮白加粗。
+func TestGreetingHeadlineMatchesInvite(t *testing.T) {
+	m := testColorModel(t)
+	rendered := strings.Join(m.greetingLines(64), "\n")
+	if !strings.Contains(rendered, m.styles.muted.Render(greetingHeadline)) {
+		t.Fatalf("headline 未使用 muted 样式（应与 invite 一致）:\n%q", rendered)
+	}
+	if strings.Contains(rendered, m.styles.title.Render(greetingHeadline)) {
+		t.Fatal("headline 仍在使用 title（亮白加粗）样式")
+	}
+	if !strings.Contains(rendered, m.styles.muted.Render(greetingInvite)) {
+		t.Fatalf("invite 不再是 muted 样式:\n%q", rendered)
+	}
+}

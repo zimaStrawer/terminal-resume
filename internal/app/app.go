@@ -855,9 +855,26 @@ func (m Model) renderPromptBox(boxWidth int) string {
 	// 菜单打开时输入框内容恒为 "/"（再输任何字符都会立即关菜单），
 	// 自己渲染 "/" 加光标，绕开 textinput 的行内补全残留。
 	var line string
-	if m.menuOpen {
+	switch {
+	case m.menuOpen:
 		line = prefix + m.styles.prompt.Render("/") + lipgloss.NewStyle().Reverse(true).Render(" ")
-	} else {
+	case m.input.Value() == "":
+		// ⚠️ 空输入时**不要**用 textinput 的 Placeholder 渲染，自己画。
+		//
+		// bubbles v2.2.1 的 placeholderView() 是这么写的：
+		//     p := make([]rune, m.Width()+1)   // 先开 Width+1 个 rune 的切片
+		//     copy(p, []rune(m.Placeholder))   // 再把占位文案拷进去
+		//     minWidth := lipgloss.Width(m.Placeholder)   // ← 这是**显示宽度**
+		//     v += render(string(p[1:minWidth]))          // ← 却拿它当 **rune 下标**切
+		// 占位文案含 CJK 时两者不相等（现文案 31 列 / 18 rune），多切出来的
+		// 13 个位置是 rune 零值 `\x00`：这些 NUL 混进渲染后，终端与 lipgloss
+		// 对「这一行多宽」的认知不一致 —— 输入行左竖条丢失、面板被挤到下一行，
+		// 整个框看着错位（2026-09-22 用户截图实测）。
+		// 英文占位文案时代 Width 恰好等于 rune 数，所以这个坑一直没暴露。
+		// 样式沿用 applyInputStyles 里配的那个（彩色 colorDim / 黑白 Faint），
+		// 也就是 m.styles.dim，视觉与改前一致（原先只有首字被光标样式提亮）。
+		line = prefix + m.styles.dim.Render(m.input.Placeholder)
+	default:
 		line = prefix + m.input.View()
 	}
 	return m.renderDialog(line, boxWidth, 1)
@@ -874,13 +891,17 @@ const (
 // greetingLines 渲染 logo 与输入框之间那段收尾文案，返回已按内容宽度居中的若干行。
 // 它紧跟在 logo 下方（见 conversationLines）：空对话时正好落在 logo 与输入框之间，
 // 有回答后会与 logo 一起被顶上去、最终离屏。**不要改成常驻输入框上方。**
+//
+// 2026-09-22 用户要求：第一行 headline 不再用 title（亮白加粗），改成与第二行
+// invite 同样的 muted 灰 —— 三行由亮到淡的层级里，headline 之前比 invite 更抢眼，
+// 反而把「感谢看到最后」喊得比邀请语还重。现在 headline 与 invite 同一样式，
+// 只有第三行 tagline 保留主题色。
 func (m Model) greetingLines(width int) []string {
 	available := max(width, 1)
 	center := lipgloss.NewStyle().Width(available).Align(lipgloss.Center)
-	invite := m.styles.muted.Render(greetingInvite)
 	block := strings.Join([]string{
-		m.styles.title.Render(greetingHeadline),
-		invite,
+		m.styles.muted.Render(greetingHeadline),
+		m.styles.muted.Render(greetingInvite),
 		m.styles.themeText.Render(greetingTagline),
 	}, "\n")
 	return strings.Split(center.Render(ansi.Wrap(block, available, "")), "\n")
