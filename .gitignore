@@ -7,3 +7,6 @@ npm/*.tgz
 
 # 工作记忆（非项目代码）
 .workbuddy/
+
+# wrangler（CF Pages 部署）的本地缓存，不进仓库
+.wrangler/
