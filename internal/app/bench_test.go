@@ -67,4 +67,5 @@ func BenchmarkStreamFrame(b *testing.B) {
 }
 
 // 保证基准里那份占位文案与我们锁定的常量一致，避免基准悄悄跑在别的状态上。
-var _ = strings.Contains(homePlaceholder, "press / for shortcuts")
+// 2026-09-22 文案换成中文后，锚点跟着改成「带双引号的斜杠」——那正是这次改动的重点。
+var _ = strings.Contains(homePlaceholder, `"/"`)

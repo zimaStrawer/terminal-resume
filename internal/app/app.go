@@ -819,12 +819,18 @@ func (m Model) renderHomeLayout(contentWidth int) string {
 	return strings.Join(parts, "\n")
 }
 
-// 输入框空态占位文案（用户 2026-09-19 指定）。
+// 输入框空态占位文案（用户 2026-09-19 指定，2026-09-22 改文案）。
 // 快捷键提示从框内那一行挪到了这里，所以框里只剩一行输入区。
 // 终端窄到放不下整句时换短句，避免占位文案被拦腰截断。
+//
+// 2026-09-22 用户反馈：原来的英文句 "Ask me anything, or press / for shortcuts."
+// 没人看得出按 `/` 会弹出命令菜单，所以换成中文，并把斜杠用**双引号**框起来强调。
+// ⚠️ 长度受限：homeMetrics 里 boxWidth = min(视口宽-8, 72)，可用列 = boxWidth-4，
+// 再扣掉左侧提示字形那 2 列 —— 在下面这个阈值（62 列）上长句最长只能 48 列，
+// 超了 TestPromptBoxSingleCenteredRow 会抓到（它断言占位串在框里完整出现）。
 const (
-	homePlaceholder         = "Ask me anything, or press / for shortcuts."
-	homePlaceholderShort    = "Ask me anything, or press /"
+	homePlaceholder         = "随便聊聊，或按 \"/\" 唤出快捷命令"
+	homePlaceholderShort    = "按 \"/\" 唤出快捷命令"
 	homePlaceholderMinWidth = 62
 )
 

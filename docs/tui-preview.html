@@ -38,7 +38,7 @@
   <p class='intro-sub'>由真实运行的二进制 + pty 原始字节流还原（xterm.js），不是手绘稿。</p>
   <ul class='spec'>
     <li><b>终端底色</b> <code>#0D0D0D</code> —— 通过 OSC 11 写入终端，整块画布都吃这个颜色。</li>
-    <li><b>输入框</b> <code>#201E1E</code> 实心底，<b>左右各一条主题色实心竖条</b> <code>#16B8F3</code>，始终钉在屏幕底部。竖条由<b>格子背景色整格铺满</b>画成，所以必然贴边、等高、连续无缝。靠字形墨迹画不出这个效果：方块字符 <code>▏</code>/<code>▕</code> 的墨迹高度由字体决定、会被切成几截；box-drawing 的 <code>│</code>（U+2502）为了让相邻行的线衔接，墨迹比格还高，会从框底漏出一截、在页面底色上显形。格内另留一个不可见的占位字形 <code>ǀ</code>（U+01C0，前景色 = 背景色）供光标定位与测试探针认框行。框内<b>只有一行输入区</b>，上下各一行内边距让它垂直居中；空态显示占位文案 <code>Ask me anything, or press / for shortcuts.</code>（窄于 62 列时换成短句 <code>Ask me anything, or press /</code>）。</li>
+    <li><b>输入框</b> <code>#201E1E</code> 实心底，<b>左右各一条主题色实心竖条</b> <code>#16B8F3</code>，始终钉在屏幕底部。竖条由<b>格子背景色整格铺满</b>画成，所以必然贴边、等高、连续无缝。靠字形墨迹画不出这个效果：方块字符 <code>▏</code>/<code>▕</code> 的墨迹高度由字体决定、会被切成几截；box-drawing 的 <code>│</code>（U+2502）为了让相邻行的线衔接，墨迹比格还高，会从框底漏出一截、在页面底色上显形。格内另留一个不可见的占位字形 <code>ǀ</code>（U+01C0，前景色 = 背景色）供光标定位与测试探针认框行。框内<b>只有一行输入区</b>，上下各一行内边距让它垂直居中；空态显示占位文案 <code>随便聊聊，或按 "/" 唤出快捷命令</code>（窄于 62 列时换成短句 <code>按 "/" 唤出快捷命令</code>）。</li>
     <li><b>提示字符是动画的</b> 输入框里那个字符照搬网站模块标题的光标（<code>AsciiTitle.astro</code>）：闪烁 10 步 ×300ms → 停 560ms → 乱序 16 帧 ×64ms（字符集 <code>x &gt; / &amp; - ~ ^ =</code>）→ 停 720ms 循环，基字符是 <code>›</code>。每一帧都只占 1 列，且暗态用空格填充，所以输入框整行宽度恒定、字位置不抖。快照只抓到循环中的某一帧，故各卡片里这个字符会不一样。</li>
     <li><b>框内不再重复快捷键提示</b> 旧版那行 <code>/ shortcuts  ctrl+p commands  ctrl+c exit</code> 已删除，提示统一由占位文案承担；输入框下方那一行也只在有通知（notices）时才出字。</li>
     <li><b>下拉框</b> 不设背景色（直接落在终端底色上），未选中项灰色 <code>#94A3B8</code>，选中项主题色 <code>#16B8F3</code>。</li>
@@ -77,11 +77,11 @@
 <span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'> </span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>按 / 打开下拉框 · 四条快捷命令落在输入框上方</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>按 / 打开下拉框 · 四条快捷命令落在输入框上方</h2><pre> 
  
  
  
@@ -106,7 +106,7 @@
 <span style='color:#F8FAFC'>                </span><span style='color:#94a3b8'>  /log       browse recent builds &amp; learning notes</span><span style='color:#F8FAFC'>                                  </span>
 <span style='color:#F8FAFC'>                </span><span style='color:#94a3b8'>  /personal  discover the person behind the work</span><span style='color:#F8FAFC'>                                    </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>/</span><span style='color:#F8FAFC;background:#201e1e'>                                                                   </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#94a3b8;background:#201e1e'>^</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>/</span><span style='color:#F8FAFC;background:#201e1e'>                                                                   </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
@@ -135,11 +135,11 @@
 <span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>能力不是工具清单：项目详情中展示了它们如何共同解决问题。</span><span style='color:#F8FAFC'>                                           </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>执行 /personal · 收尾文案与 logo 一起被顶出屏幕</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>执行 /personal · 收尾文案与 logo 一起被顶出屏幕</h2><pre> 
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9;font-weight:600'>ENGINEERING</span><span style='color:#F8FAFC'>                                                                                        </span>
 <span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>HTML / CSS  /  JavaScript / TypeScript  /  React  /  Go / TUI  /  Design Systems</span><span style='color:#F8FAFC'>                   </span>
  
@@ -164,18 +164,18 @@
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>+ </span><span style='color:#f8fafc'>让 AI 的能力可见、可控、可理解，而不是只增加一个输入框。</span><span style='color:#F8FAFC'>                                         </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#94a3b8;background:#201e1e'>=</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#94a3b8;background:#201e1e'>x</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>执行 /help · 回答正在流式打印（约三分之一）</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/about /personal   </span><span style='color:#f8fafc'>关于我</span><span style='color:#F8FAFC'>                                                                          </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>执行 /help · 回答正在流式打印（约三分之一）</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/about /personal   </span><span style='color:#f8fafc'>关于我</span><span style='color:#F8FAFC'>                                                                          </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/experience        </span><span style='color:#f8fafc'>工作经历</span><span style='color:#F8FAFC'>                                                                        </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/projects          </span><span style='color:#f8fafc'>项目列表</span><span style='color:#F8FAFC'>                                                                        </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/project 01        </span><span style='color:#f8fafc'>打开项目详情</span><span style='color:#F8FAFC'>                                                                    </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/skills            </span><span style='color:#f8fafc'>能力与工具</span><span style='color:#F8FAFC'>                                                                      </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/status            </span><span style='color:#f8fafc'>当前状态与求职方向</span><span style='color:#F8FAFC'>                                                              </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/log               </span><span style='color:#f8fafc'>学习与构建记录</span><span style='color:#F8FAFC'>                                                                  </span>
-<span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/random            </span><span style='color:#f8fafc'>别</span><span style='color:#F8FAFC'>                                                                              </span>
+<span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/random            </span><span style='color:#f8fafc'>别处没有的东西</span><span style='color:#F8FAFC'>                                                                  </span>
  
  
  
@@ -193,11 +193,11 @@
  
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>/help 回答完成</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/about /personal   </span><span style='color:#f8fafc'>关于我</span><span style='color:#F8FAFC'>                                                                          </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>/help 回答完成</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/about /personal   </span><span style='color:#f8fafc'>关于我</span><span style='color:#F8FAFC'>                                                                          </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/experience        </span><span style='color:#f8fafc'>工作经历</span><span style='color:#F8FAFC'>                                                                        </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/projects          </span><span style='color:#f8fafc'>项目列表</span><span style='color:#F8FAFC'>                                                                        </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>/project 01        </span><span style='color:#f8fafc'>打开项目详情</span><span style='color:#F8FAFC'>                                                                    </span>
@@ -222,11 +222,11 @@
 <span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Ctrl+C          随时退出</span><span style='color:#F8FAFC'>                                                                           </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>执行 /resume</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Esc Esc         连按两次退出程序</span><span style='color:#F8FAFC'>                                                                   </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>执行 /resume</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Esc Esc         连按两次退出程序</span><span style='color:#F8FAFC'>                                                                   </span>
 <span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>Ctrl+C          随时退出</span><span style='color:#F8FAFC'>                                                                           </span>
  
 <span style='color:#F8FAFC'> › /resume                                                                                          </span>
@@ -251,11 +251,11 @@
 <span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>感谢你花时间在终端中认识我。</span><span style='color:#F8FAFC'>                                                                       </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>执行 /log</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#00bbf9;font-weight:600'>WEBSITE</span><span style='color:#F8FAFC'>                                                                                            </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>执行 /log</h2><pre><span style='color:#F8FAFC'> </span><span style='color:#00bbf9;font-weight:600'>WEBSITE</span><span style='color:#F8FAFC'>                                                                                            </span>
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9'>https://zhangsizhou.pages.dev</span><span style='color:#F8FAFC'>                                                                      </span>
  
 <span style='color:#F8FAFC'> </span><span style='color:#00bbf9;font-weight:600'>GITHUB</span><span style='color:#F8FAFC'>                                                                                             </span>
@@ -280,11 +280,11 @@
 <span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>这里记录最近在学、在建、在试的东西。</span><span style='color:#F8FAFC'>                                                               </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'> </span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'> </span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>通知 · 启动首页</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>通知 · 启动首页</h2><pre> 
  
  
  
@@ -309,11 +309,11 @@
 <span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>通知 · 输入未知命令 /nope · 提示落在输入框下方，输入框位置不动</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>通知 · 输入未知命令 /nope · 提示落在输入框下方，输入框位置不动</h2><pre> 
  
  
  
@@ -338,11 +338,11 @@
 <span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
-<span style='color:#F8FAFC'>                        </span><span style='color:#fb7185;font-weight:600'>[error] 没有找到命令 "/nope"。你是否想输入 "/home"？</span><span style='color:#F8FAFC'>                        </span></pre></section><section class='card'><h2>对话 · 启动首页</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>对话 · 启动首页</h2><pre> 
  
  
  
@@ -367,11 +367,11 @@
 <span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>对话 · 输入一句自由提问</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>对话 · 输入一句自由提问</h2><pre> 
  
  
  
@@ -396,7 +396,7 @@
 <span style='color:#F8FAFC'>                                     </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                      </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#f8fafc;background:#201e1e'>他做过哪些项目？</span><span style='color:#F8FAFC;background:#201e1e'>                                                    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'> </span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#f8fafc;background:#201e1e'>他做过哪些项目？</span><span style='color:#F8FAFC;background:#201e1e'>                                                    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
@@ -425,11 +425,11 @@
 <span style='color:#F8FAFC'> 张思洲的精选项目包括：跑腿全链路优化、构序云体验适配、艺术画境产品设计以及 N                       </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section><section class='card'><h2>对话 · 回答打印完成 · 长句自动折行，一个字都没丢</h2><pre> 
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section><section class='card'><h2>对话 · 回答打印完成 · 长句自动折行，一个字都没丢</h2><pre> 
  
  
  
@@ -454,11 +454,11 @@
 <span style='color:#F8FAFC'> 需了解具体细节，可以继续问我某个项目的取舍，或直接访问作品集的项目页面。                           </span>
  
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
-<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'> </span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>                          </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>                                                 </span>
+<span style='color:#F8FAFC'> </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                                                                                  </span>
 <span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>             </span>
  
-<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span>
- </pre></section></section>
+<span style='color:#F8FAFC'>             </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                                                      </span></pre></section></section>
 <section class='group'><h1>窄屏终端 64 × 22</h1><section class='card'><h2>窄屏 · 启动首页</h2><pre> 
  
  
@@ -476,11 +476,11 @@
 <span style='color:#F8FAFC'>                   </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>                    </span>
  
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                      </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
-<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>                               </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                </span>
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                      </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
  
-<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                           </span>
- </pre></section><section class='card'><h2>窄屏 · 按 / 打开下拉框</h2><pre> 
+<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                           </span></pre></section><section class='card'><h2>窄屏 · 按 / 打开下拉框</h2><pre> 
 <span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██████╗</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██╗</span><span style='color:#F8FAFC'>       </span>
 <span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>██╔════╝</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>╚══███╔╝</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██╔═══██╗</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
 <span style='color:#F8FAFC'>       </span><span style='color:#a6aebb'>███████╗</span><span style='color:#F8FAFC'> </span><span style='color:#a6aebb'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>███╔╝</span><span style='color:#F8FAFC'>  </span><span style='color:#ffffff'>███████║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'> </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>   </span><span style='color:#ffffff'>██║</span><span style='color:#F8FAFC'>       </span>
@@ -518,11 +518,11 @@
 <span style='color:#F8FAFC'> </span><span style='color:#94a3b8'>能力不是工具清单：项目详情中展示了它们如何共同解决问题。</span><span style='color:#F8FAFC'>       </span>
  
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                      </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
-<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press / for shortcuts.</span><span style='color:#F8FAFC;background:#201e1e'>        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>             </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>随便聊聊，或按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>             </span>
+<span style='color:#F8FAFC'>                               </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                                </span>
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                                      </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
  
-<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                           </span>
- </pre></section></section>
+<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                                           </span></pre></section></section>
 <section class='group'><h1>黑白模式（--mono） 90 × 26</h1><section class='card'><h2>黑白 · 启动首页</h2><pre> 
  
  
@@ -544,11 +544,11 @@
 <span style='color:#F8FAFC'>                                </span><span style='color:#F8FAFC;font-weight:600'>Design Without Boundaries</span><span style='color:#F8FAFC'>                                 </span>
  
 <span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>        </span>
-<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> Ask me anything, or press / for shortcuts.                          </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> 随便聊聊，或按 "/" 唤出快捷命令                                              </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>                                                                                        </span>
 <span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>        </span>
  
-<span style='color:#F8FAFC'>        连按两次 esc 退出                                                                 </span>
- </pre></section><section class='card'><h2>黑白 · 按 / 打开下拉框</h2><pre> 
+<span style='color:#F8FAFC'>        连按两次 esc 退出                                                                 </span></pre></section><section class='card'><h2>黑白 · 按 / 打开下拉框</h2><pre> 
  
  
  
@@ -594,11 +594,11 @@
 <span style='color:#F8FAFC'> 能力不是工具清单：项目详情中展示了它们如何共同解决问题。                                 </span>
  
 <span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>        </span>
-<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> Ask me anything, or press / for shortcuts.                          </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>        </span>
+<span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>  </span><span style='color:#F8FAFC;font-weight:600'>›</span><span style='color:#F8FAFC'> 随便聊聊，或按 "/" 唤出快捷命令                                              </span>
+<span style='color:#F8FAFC'> </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>                                                                                        </span>
 <span style='color:#F8FAFC'>        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>                                                                        </span><span style='color:#f8fafc'>ǀ</span><span style='color:#F8FAFC'>        </span>
  
-<span style='color:#F8FAFC'>        连按两次 esc 退出                                                                 </span>
- </pre></section></section>
+<span style='color:#F8FAFC'>        连按两次 esc 退出                                                                 </span></pre></section></section>
 <section class='group'><h1>终端 50 × 22</h1><section class='card'><h2>窄屏短句 · 启动首页</h2><pre> 
  
  
@@ -616,11 +616,11 @@
 <span style='color:#F8FAFC'>            </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>             </span>
  
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
-<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press /</span><span style='color:#F8FAFC;background:#201e1e'>         </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>            </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#00bbf9;background:#201e1e;font-weight:600'>›</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>            </span>
+<span style='color:#F8FAFC'>                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                         </span>
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
  
-<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                             </span>
- </pre></section><section class='card'><h2>窄屏短句 · 启动首页 · 占位文案换成 Ask me anything, or press /</h2><pre> 
+<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                             </span></pre></section><section class='card'><h2>窄屏短句 · 启动首页 · 占位文案换成短句 按 "/" 唤出快捷命令</h2><pre> 
  
  
  
@@ -637,8 +637,8 @@
 <span style='color:#F8FAFC'>            </span><span style='color:#16b8f3'>Design Without Boundaries</span><span style='color:#F8FAFC'>             </span>
  
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
-<span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#94a3b8;background:#201e1e'>^</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>Ask me anything, or press /</span><span style='color:#F8FAFC;background:#201e1e'>         </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
+<span style='color:#F8FAFC'>            </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#94a3b8;background:#201e1e'>-</span><span style='color:#F8FAFC;background:#201e1e'> </span><span style='color:#6b7a90;background:#201e1e'>按 "/" 唤出快捷命令</span><span style='color:#F8FAFC;background:#201e1e'>  </span><span style='color:#F8FAFC'>            </span>
+<span style='color:#F8FAFC'>                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>                         </span>
 <span style='color:#F8FAFC'>    </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC;background:#201e1e'>                                        </span><span style='color:#16b8f3;background:#16b8f3'>ǀ</span><span style='color:#F8FAFC'>    </span>
  
-<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                             </span>
- </pre></section></section>
+<span style='color:#F8FAFC'>    </span><span style='color:#6b7a90'>连按两次 esc 退出</span><span style='color:#F8FAFC'>                             </span></pre></section></section>
