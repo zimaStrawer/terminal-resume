@@ -102,4 +102,9 @@ fi
 chmod +x "${TMP}/${BIN_NAME}"
 
 # 直接启动（本地 TUI，不启 SSH）
-exec "${TMP}/${BIN_NAME}" --local
+#
+# ⚠️ 这里**不能**用 exec：exec 会用新程序替换掉当前 bash 进程，而上面的
+# `trap 'rm -rf "$TMP"' EXIT` 是 shell 级机制 —— 进程被顶掉之后它永远不会触发，
+# 结果是每跑一次就在临时目录留下一份 ~9.5 MB 的二进制（实测 16 次 = 153 MB）。
+# 普通调用即可：bash 会等程序退出，然后 EXIT trap 正常清理。
+"${TMP}/${BIN_NAME}" --local
